@@ -1,1 +1,1 @@
-# Repository for the evolutionary-computation subject
+### Repository for the evolutionary computation course
