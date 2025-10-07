@@ -1,5 +1,5 @@
 #include "ProblemInstance.h"
-// #include "GreedySolver.h"
+#include "GreedySolver.h"
 #include "RandomSolver.h"
 #include <iostream>
 
@@ -9,5 +9,10 @@ int main() {
     //inside the solver result printed
     RandomSolver solver(prob);
     std::vector<int> result = solver.solve();
+
+    GreedySolver greedySolver(prob, GreedyMode::NearestNeighbourEnd);
+    std::vector<int> greedyResult = greedySolver.solve();
+    std::cout << "Greedy Result: " << prob.FullDistanceAndCost(greedyResult) << std::endl;
+
     return 0;
 }
