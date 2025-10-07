@@ -12,7 +12,11 @@ int main() {
 
     GreedySolver greedySolver(prob, GreedyMode::NearestNeighbourEnd);
     std::vector<int> greedyResult = greedySolver.solve();
-    std::cout << "Greedy Result: " << prob.FullDistanceAndCost(greedyResult) << std::endl;
+    std::cout << "Greedy Result (NearestNeighbourEnd): " << prob.FullDistanceAndCost(greedyResult) << std::endl;
+
+    GreedySolver greedySolver2(prob, GreedyMode::NearestNeighbour);
+    greedyResult = greedySolver2.solve();
+    std::cout << "Greedy Result: (NearestNeighbour): " << prob.FullDistanceAndCost(greedyResult) << std::endl;
 
     return 0;
 }
