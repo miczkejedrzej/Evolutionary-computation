@@ -3,6 +3,7 @@
 #include "Solver.h"
 #include <vector>
 #include <random>
+#include "Solver.h"
 class RandomSolver: public Solver {
 public:
     explicit RandomSolver(const ProblemInstance& prob);

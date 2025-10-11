@@ -20,8 +20,8 @@ class ProblemInstance {
 public:
     
 
-    ProblemInstance() = default;                     
-    explicit ProblemInstance(const std::string& file); 
+    //ProblemInstance() = default;                     
+    explicit ProblemInstance(const std::string& file, int citiesInCycle); 
 
     void setProblem(const std::string& file);        
 
@@ -31,6 +31,8 @@ public:
      size_t getNumCities() const { return distances.size(); }
 
     int64_t GetCostAndDistance(size_t from, size_t to) const;
+    
+    int64_t GetRawDistance(size_t from, size_t to) const;
 
     int64_t GetX(size_t index) const;
 
@@ -40,16 +42,19 @@ public:
 
     int64_t GetNumberCitiesInCycle() const;
 
-    Row yieldRow(size_t index) const;
-    std::vector<Row> yieldRows(size_t index) const;
+    //Row yieldRow(size_t index) const;
+    //std::vector<Row> yieldRows(size_t index) const;
 
     std::vector<int> GiveIndices() const;
 
     static int64_t DistCalculation(const Row& a, const Row& b, DistanceType d = Euclidean);
 
+    static int64_t RawDistCalculation(const Row& row_start, const Row& row_end, DistanceType d = Euclidean);
+
 private:
     std::vector<std::vector<int64_t>> distances;
-    int64_t CitiesInCycle;
+    std::vector<std::vector<int64_t>> distances_no_cost;
+    int64_t citiesInCycle;
     std::vector<int> indices;
     std::string line;
     std::vector<Row> rows;

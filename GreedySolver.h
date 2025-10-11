@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <tuple>
+#include <queue>
 #include "Solver.h"
 
 // Enum 
@@ -9,13 +11,16 @@ enum class GreedyMode {
     GreedyCycle
 };
 
+
+
 // GreedySolver inherits from Solver
 class GreedySolver : public Solver {
 public:
-    explicit GreedySolver(const ProblemInstance& prob, GreedyMode mode = GreedyMode::NearestNeighbour);
-
+    explicit GreedySolver(const ProblemInstance& prob, int index, GreedyMode mode = GreedyMode::NearestNeighbour);
 
     std::vector<int> solve() override;
+
+    int getStartingIndex();
 
 private:
     GreedyMode mode_;
@@ -23,4 +28,5 @@ private:
     std::vector<int> solveNearestNeighbour();
     std::vector<int> solveNearestNeighbourEnd();
     std::vector<int> solveGreedyCycle();
+    int starting_index;
 };

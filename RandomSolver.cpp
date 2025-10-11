@@ -27,7 +27,7 @@ std::vector<int> RandomSolver::solve() {
     std::shuffle(indices.begin(), indices.end(), g);
     std::vector<int> result = slicing(indices,numCitiesInCycle - 1);
     int64_t total_cost = problem.FullDistanceAndCost(result);
-    std::cout << "Total cost is " << total_cost << std::endl;
+    std::cout << "Random cost is " << total_cost << std::endl;
     return result;
 }
 
