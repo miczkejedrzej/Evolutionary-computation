@@ -1,0 +1,31 @@
+ALGORITHM SolveNearestNeighbourEnd
+INPUT:  problem instance, starting_index
+OUTPUT: VISITED (vector of city indices forming Hamiltonian path)
+
+1.   VISITED ← empty list
+2.   TARGET_SIZE ← problem.GetNumberCitiesInCycle()
+3.   UNVISITED ← all city indices from problem
+
+4.   start_city ← UNVISITED[starting_index]
+5.   Append start_city to VISITED
+6.   Remove start_city from UNVISITED
+
+7.   FOR path_position ∈ [1, TARGET_SIZE - 1] DO:
+8.       best_cost ← +∞
+9.       nearest_idx ← -1
+
+10.      FOR each city_idx ∈ [0, |UNVISITED| - 1] DO:
+11.          current_city ← UNVISITED[city_idx]
+12.          city_cost ← GetCostAndDistance(VISITED[path_position - 1], current_city)
+13.          IF city_cost < best_cost THEN
+14.              best_cost ← city_cost
+15.              nearest_idx ← city_idx
+16.          END IF
+17.      END FOR
+
+18.      Append UNVISITED[nearest_idx] to VISITED
+19.      Remove UNVISITED[nearest_idx] from UNVISITED
+20.   END FOR
+
+21.   AssertHamiltonian(VISITED, TARGET_SIZE)
+22.   RETURN VISITED
