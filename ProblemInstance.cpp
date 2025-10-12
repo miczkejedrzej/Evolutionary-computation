@@ -5,7 +5,8 @@
 #include <cmath>
 
 
-ProblemInstance::ProblemInstance(const std::string& file, int citiesInCycle):
+ProblemInstance::ProblemInstance(const std::string& file, int citiesInCycle, std::string name)
+    : name(name),
 citiesInCycle(citiesInCycle){
     setProblem(file);
 }

@@ -18,10 +18,11 @@ enum DistanceType {
 
 class ProblemInstance {
 public:
-    
+
+    std::string name;
 
     //ProblemInstance() = default;                     
-    explicit ProblemInstance(const std::string& file, int citiesInCycle); 
+    explicit ProblemInstance(const std::string& file, int citiesInCycle, std::string name); 
 
     void setProblem(const std::string& file);        
 

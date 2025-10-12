@@ -20,14 +20,14 @@ std::vector<int> RandomSolver::slicing(const std::vector<int> arr, int X) {
 
 std::vector<int> RandomSolver::solve() {
     //random generator function 
-    std::mt19937 g(42);
+    std::mt19937 g(std::random_device{}());
     int numCitiesInCycle = static_cast<int>(problem.GetNumberCitiesInCycle());
     std::vector<int> indices = problem.GiveIndices();
     //randomly shuffling the array
     std::shuffle(indices.begin(), indices.end(), g);
     std::vector<int> result = slicing(indices,numCitiesInCycle - 1);
     int64_t total_cost = problem.FullDistanceAndCost(result);
-    std::cout << "Random cost is " << total_cost << std::endl;
+    // std::cout << "Random cost is " << total_cost << std::endl;
     return result;
 }
 

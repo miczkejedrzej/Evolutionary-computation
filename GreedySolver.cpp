@@ -39,7 +39,7 @@ int GreedySolver::getStartingIndex(){
 }
 
 std::vector<int> GreedySolver::solveNearestNeighbour() {
-    std::cout << "Solving with Nearest Neighbour";
+    // std::cout << "Solving with Nearest Neighbour";
 
     int targetSize = problem.GetNumberCitiesInCycle();
     std::vector<int> visited;
@@ -103,7 +103,7 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
 }
 
 std::vector<int> GreedySolver::solveNearestNeighbourEnd() {
-    std::cout << "Solving with Nearest Neighbour from End...\n";
+    // std::cout << "Solving with Nearest Neighbour from End...\n";
     std::vector<int> unvisited = problem.GiveIndices();
     std::vector<int> visited;
     visited.reserve(problem.GetNumberCitiesInCycle());
@@ -129,7 +129,7 @@ std::vector<int> GreedySolver::solveNearestNeighbourEnd() {
 }
 
 std::vector<int> GreedySolver::solveGreedyCycle() {
-    std::cout << "Solving with Greedy Cycle";
+    // std::cout << "Solving with Greedy Cycle";
     int targetSize = problem.GetNumberCitiesInCycle();
     std::vector<int> visited;
     visited.reserve(targetSize);

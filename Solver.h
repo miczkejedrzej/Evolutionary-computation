@@ -12,6 +12,11 @@ public:
     virtual ~Solver() = default;
     // function to overwrite 
     virtual std::vector<int> solve() = 0;
+
+    static bool writePathCsv(const std::vector<int>& path,
+                             const std::string& filename,
+                             char sep = ';',
+                             bool append = false);
 protected:
     // for the Solvers to use 
     const ProblemInstance& problem;
