@@ -28,5 +28,6 @@ private:
     std::vector<int> solveNearestNeighbour();
     std::vector<int> solveNearestNeighbourEnd();
     std::vector<int> solveGreedyCycle();
+    void AssertHamiltonian(std::vector<int> visited,int citiesNumber);
     int starting_index;
 };

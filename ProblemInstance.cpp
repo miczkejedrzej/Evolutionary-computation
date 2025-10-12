@@ -101,13 +101,6 @@ int64_t ProblemInstance::GetCost(size_t index) const {
     return rows[index].cost;
 }
 
-// Row ProblemInstance::yieldRow(size_t index) const{
-//     return rows[index];
-// }
-// std::vector<Row> ProblemInstance::yieldRows(size_t index) const{
-//     return rows;
-// }
-
 std::vector<int> ProblemInstance::GiveIndices() const{
     return indices;
 }

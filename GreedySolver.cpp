@@ -7,10 +7,19 @@
 #include "Solver.h"
 #include <unordered_map>
 #include <unordered_set>
+#include <cassert>
 
 
 GreedySolver::GreedySolver(const ProblemInstance& prob,int starting_index, GreedyMode mode)
     : Solver(prob), mode_(mode), starting_index(starting_index) {}
+    
+void GreedySolver::AssertHamiltonian(std::vector<int> visited,int citiesNumber){
+    std::unordered_set<int> uniqueCities;
+    for(int element: visited){
+        uniqueCities.insert(element);
+    }
+    assert(uniqueCities.size() == citiesNumber);
+}
 
 std::vector<int> GreedySolver::solve() {
     switch (mode_) {
@@ -35,7 +44,6 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
     int targetSize = problem.GetNumberCitiesInCycle();
     std::vector<int> visited;
     visited.reserve(targetSize);
-
     std::vector<int> unvisited = problem.GiveIndices();
     int starting_index = getStartingIndex();
     visited.push_back(unvisited[starting_index]);
@@ -52,7 +60,7 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
             int city = unvisited[cityIdx];
             
             // Case for extending the beggining - no need for rerouting the previous path
-            int64_t costBegin = problem.GetCostAndDistance(city, visited[0]);
+            int64_t costBegin = problem.GetCostAndDistance(visited[0],city);
             if (costBegin < bestCost) {
                 bestCost = costBegin;
                 bestInsertPos = 0;
@@ -68,7 +76,7 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
             }
 
             // Try inserting in middle positions ( - account for the rerouting to keep the solution
-            // a proepr hamiltonian
+            // a proper hamiltonian
             for (int pos = 1; pos < visited.size(); ++pos) {
                 int64_t oldEdge = problem.GetCostAndDistance(visited[pos-1], visited[pos]);
                 int64_t newEdges = problem.GetCostAndDistance(visited[pos-1], city) + 
@@ -90,7 +98,7 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
         visited.insert(visited.begin() + bestInsertPos, unvisited[bestCityIdx]);
         unvisited.erase(unvisited.begin() + bestCityIdx);
     }
-
+    AssertHamiltonian(visited,targetSize);
     return visited;
 }
 
@@ -102,7 +110,8 @@ std::vector<int> GreedySolver::solveNearestNeighbourEnd() {
     int currIdx = getStartingIndex();
     visited.push_back(unvisited[currIdx]);
     unvisited.erase(unvisited.begin() + currIdx);
-    for (int i = 1; i < problem.GetNumberCitiesInCycle(); ++i) {
+    int targetSize = problem.GetNumberCitiesInCycle();
+    for (int i = 1; i < targetSize; ++i) {
         int nearestIdx = -1;
         int64_t nearestDist = INT64_MAX;
         for (int j = 0; j < unvisited.size(); ++j) {
@@ -115,6 +124,7 @@ std::vector<int> GreedySolver::solveNearestNeighbourEnd() {
         visited.push_back(unvisited[nearestIdx]);
         unvisited.erase(unvisited.begin() + nearestIdx);
     }
+    AssertHamiltonian(visited,targetSize);
     return visited;
 }
 
@@ -140,7 +150,7 @@ std::vector<int> GreedySolver::solveGreedyCycle() {
              for (int cityIdx = 0; cityIdx < unvisited.size(); ++cityIdx) {
                 int city = unvisited[cityIdx];
                 //can not form a cycle with 2 nodes so dont account for this here
-                int64_t costBegin = problem.GetCostAndDistance(city, visited[0]);
+                int64_t costBegin = problem.GetCostAndDistance(visited[0],city);
                 if (costBegin < bestCost) {
                     bestCost = costBegin;
                     bestInsertPos = 1;
@@ -166,6 +176,16 @@ std::vector<int> GreedySolver::solveGreedyCycle() {
                     bestCityIdx = cityIdx;
                 }
 
+                 //try inserting at the end, no need for rerouting but change of the cycle closing edge
+                int64_t costEnd = problem.GetCostAndDistance(visited.back(), city)
+                + problem.GetRawDistance(city,visited[0]);
+                int64_t costEndDelta = costEnd - problem.GetRawDistance(visited[0],visited.back());
+                if (costEndDelta < bestCost) {
+                    bestCost = costEndDelta;
+                    bestInsertPos = static_cast<int>(visited.size());
+                    bestCityIdx = cityIdx;
+                }
+
                 // Try inserting in the middle of path
                 for (int pos = 1; pos < visited.size(); ++pos) {
                     //needs to account for rerouting of the old path 
@@ -182,15 +202,7 @@ std::vector<int> GreedySolver::solveGreedyCycle() {
                         bestCityIdx = cityIdx;
                     }
                 }
-                // no need for rerouting but change of the cycle closing edge
-                int64_t costEnd = problem.GetCostAndDistance(visited.back(), city)
-                + problem.GetRawDistance(city,visited[0]);
-                int64_t costEndDelta = costEnd - problem.GetRawDistance(visited[0],visited.back());
-                if (costEndDelta < bestCost) {
-                    bestCost = costEndDelta;
-                    bestInsertPos = static_cast<int>(visited.size());
-                    bestCityIdx = cityIdx;
-                }
+               
             }
         }
     
@@ -200,6 +212,6 @@ std::vector<int> GreedySolver::solveGreedyCycle() {
         visited.insert(visited.begin() + bestInsertPos, unvisited[bestCityIdx]);
         unvisited.erase(unvisited.begin() + bestCityIdx);
     }
-
+    AssertHamiltonian(visited,targetSize);
     return visited;
 }
