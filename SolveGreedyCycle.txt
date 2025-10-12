@@ -1,0 +1,81 @@
+ALGORITHM SolveGreedyCycle
+INPUT:  problem instance, starting_index
+OUTPUT: VISITED (vector of city indices forming Hamiltonian path)
+
+1.   VISITED ← empty list
+2.   TARGET_SIZE ← problem.GetNumberCitiesInCycle()
+3.   UNVISITED ← all city indices from problem
+
+4.   start_city ← UNVISITED[starting_index]
+5.   Append start_city to VISITED
+6.   Remove start_city from UNVISITED
+
+7.   WHILE |VISITED| < TARGET_SIZE DO:
+8.       best_cost ← +∞
+9.       best_position ← -1
+10.      best_city_index ← -1
+
+11.      // --- Special case: only one node in VISITED
+12.      IF |VISITED| == 1 THEN
+13.          FOR each city_idx ∈ [0, |UNVISITED| - 1] DO:
+14.              current_city ← UNVISITED[city_idx]
+15.              cost_begin ← GetCostAndDistance(VISITED[0], current_city)
+16.              IF cost_begin < best_cost THEN
+17.                  best_cost ← cost_begin
+18.                  best_position ← 0
+19.                  best_city_index ← city_idx
+20.              END IF
+21.          END FOR
+22.      ELSE
+23.          FOR each city_idx ∈ [0, |UNVISITED| - 1] DO:
+24.              current_city ← UNVISITED[city_idx]
+
+25.              // --- Try inserting at beginning
+26.              cost_begin ← GetCostAndDistance(VISITED[0], current_city) +
+                            GetRawDistance(current_city, VISITED[-1])
+27.              cost_begin_delta ← cost_begin - GetRawDistance(VISITED[0], VISITED[-1])
+
+28.              IF cost_begin_delta < best_cost THEN
+29.                  best_cost ← cost_begin_delta
+30.                  best_position ← 0
+31.                  best_city_index ← city_idx
+32.              END IF
+
+33.              // --- Try inserting at end
+34.              cost_end ← GetCostAndDistance(VISITED[-1], current_city) +
+                          GetRawDistance(current_city, VISITED[0])
+35.              cost_end_delta ← cost_end - GetRawDistance(VISITED[0], VISITED[-1])
+
+36.              IF cost_end_delta < best_cost THEN
+37.                  best_cost ← cost_end_delta
+38.                  best_position ← |VISITED|
+39.                  best_city_index ← city_idx
+40.              END IF
+
+41.              // --- Try inserting between existing nodes
+42.              FOR pos ∈ [1, |VISITED| - 1] DO:
+43.                  old_edge ← GetCostAndDistance(VISITED[pos-1], VISITED[pos])
+44.                  new_edges ← GetCostAndDistance(VISITED[pos-1], current_city) +
+                                GetCostAndDistance(current_city, VISITED[pos])
+45.                  delta_cost ← new_edges - old_edge
+
+46.                  IF delta_cost < best_cost THEN
+47.                      best_cost ← delta_cost
+48.                      best_position ← pos
+49.                      best_city_index ← city_idx
+50.                  END IF
+51.              END FOR
+52.          END FOR
+53.      END IF
+
+54.      IF best_city_index = -1 THEN
+55.          BREAK
+56.      END IF
+
+57.      Insert UNVISITED[best_city_index] into VISITED at best_position
+58.      Remove UNVISITED[best_city_index] from UNVISITED
+
+59.   END WHILE
+
+60.   AssertHamiltonian(VISITED, TARGET_SIZE)
+61.   RETURN VISITED
