@@ -15,6 +15,7 @@ GreedySolver::GreedySolver(const ProblemInstance& prob,int starting_index, Greed
     
 void GreedySolver::AssertHamiltonian(std::vector<int> visited,int citiesNumber){
     std::unordered_set<int> uniqueCities;
+    assert(visited.size()==citiesNumber);
     for(int element: visited){
         uniqueCities.insert(element);
     }
