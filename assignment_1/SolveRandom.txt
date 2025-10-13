@@ -1,7 +1,0 @@
-1. g ← RandomNumberGenerator()
-2. TARGET_SIZE ← problem.GetNumberCitiesInCycle()
-3. INDICES ← problem.GiveIndices()
-4. Shuffle INDICES randomly using generator g
-5. RESULT ← first (TARGET_SIZE - 1) elements of INDICES
-6. total_cost ← problem.FullDistanceAndCost(RESULT)
-7. RETURN RESULT
