@@ -1,0 +1,64 @@
+ALGORITHM SolveNearestNeighbour
+INPUT: problem instance, starting_index
+OUTPUT: VISITED (vector of city indices forming Hamiltonian path)
+
+1.   VISITED ← empty list
+2.   TARGET_SIZE ← problem.GetNumberCitiesInCycle()
+3.   UNVISITED ← all city indices from problem
+
+4.   start_city ← UNVISITED[starting_index]
+5.   Append start_city to VISITED
+6.   Remove start_city from UNVISITED
+
+7.   WHILE |VISITED| < TARGET_SIZE DO:
+8.       best_cost ← +∞
+9.       best_position ← -1
+10.      best_city_index ← -1
+
+11.      FOR each city_idx ∈ [0, |UNVISITED| - 1] DO:
+12.          current_city ← UNVISITED[city_idx]
+
+13.          // --- Try inserting at beginning
+14.          cost_begin ← GetCostAndDistance(VISITED[0],current_city)
+15.          IF cost_begin < best_cost THEN
+16.              best_cost ← cost_begin
+17.              best_position ← 0
+18.              best_city_index ← city_idx
+19.          END IF
+
+20.          // --- Try inserting at end
+21.          cost_end ← GetCostAndDistance(VISITED[last], current_city)
+22.          IF cost_end < best_cost THEN
+23.              best_cost ← cost_end
+24.              best_position ← |VISITED|
+25.              best_city_index ← city_idx
+26.          END IF
+
+27.          // --- Try inserting between existing nodes
+28.          FOR pos ∈ [1, |VISITED| - 1] DO:
+29.              old_edge ← GetCostAndDistance(VISITED[pos-1], VISITED[pos])
+30.              new_edges ← GetCostAndDistance(VISITED[pos-1], current_city) +
+31.                           GetCostAndDistance(current_city, VISITED[pos])
+32.              delta_cost ← new_edges - old_edge
+
+33.              IF delta_cost < best_cost THEN
+34.                  best_cost ← delta_cost
+35.                  best_position ← pos
+36.                  best_city_index ← city_idx
+37.              END IF
+38.          END FOR
+39.      END FOR
+
+40.      IF best_city_index = -1 THEN
+41.          BREAK
+42.      END IF
+
+43.      Insert UNVISITED[best_city_index] into VISITED at best_position
+44.      Remove UNVISITED[best_city_index] from UNVISITED
+45.   END WHILE
+
+46.   AssertHamiltonian(VISITED, TARGET_SIZE)
+47.   RETURN VISITED
+
+
+
