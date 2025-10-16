@@ -1,6 +1,6 @@
 #pragma once
-#include "../template_classes/ProblemInstance.h"
-#include "../template_classes/Solver.h"
+#include "../../src/ProblemInstance.h"
+#include "../../src/Solver.h"
 #include <vector>
 #include <random>
 class RandomSolver: public Solver {

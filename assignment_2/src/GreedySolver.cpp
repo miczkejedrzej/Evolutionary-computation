@@ -4,8 +4,8 @@
 #include <cassert>
 #include <climits>
 #include <iostream>
-#include "..\template_classes\ProblemInstance.h"
-#include "..\template_classes\Solver.h"
+#include "../../src/ProblemInstance.h"
+#include "../../src/Solver.h"
 #include "GreedySolver.h"
 
 

@@ -1,0 +1,1 @@
+g++ -std=c++17 -g .\src\*.cpp .\assignment_2\src\*.cpp -o assignment_2.exe

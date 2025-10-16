@@ -2,7 +2,7 @@
 #include <vector>
 #include <tuple>
 #include <queue>
-#include "Solver.h"
+#include "../../src/Solver.h"
 
 // Enum 
 enum class GreedyMode {

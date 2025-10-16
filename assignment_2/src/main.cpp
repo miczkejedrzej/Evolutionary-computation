@@ -1,6 +1,6 @@
-#include "ProblemInstance.h"
-#include "..\assignment_2\GreedySolver.h"
-#include "Solver.h"
+#include "../../src/ProblemInstance.h"
+#include "GreedySolver.h"
+#include "../../src/Solver.h"
 #include <iostream>
 #include <climits>
 #include <string>
@@ -9,9 +9,11 @@
 
 int main() {
     // Load problem instances
-    ProblemInstance prob1("../data/TSPA.csv", 100, "A");
-    ProblemInstance prob2("../data/TSPB.csv", 100, "B");
+    ProblemInstance prob1("./data/TSPA.csv", 100, "A");
+    ProblemInstance prob2("./data/TSPB.csv", 100, "B");
     std::vector<ProblemInstance> probs = {prob1, prob2};
+
+    std::string resultPath = "./assignment_2/results/";
 
     for (auto& prob : probs) {
         // Loop over the two heuristics
@@ -38,7 +40,7 @@ int main() {
 
                 if (nnCost < bestNN) {
                     bestNN = nnCost;
-                    std::string filename = "NN_best_" + heuristicName + "_" + prob.name + ".csv";
+                    std::string filename = resultPath + "NN_best_" + heuristicName + "_" + prob.name + ".csv";
                     if (!solverNN.writePathCsv(greedyNN, filename))
                         std::cerr << "Failed to write " << filename << std::endl;
                 }
@@ -52,7 +54,7 @@ int main() {
 
                 if (gcCost < bestGC) {
                     bestGC = gcCost;
-                    std::string filename = "GC_best_" + heuristicName + "_" + prob.name + ".csv";
+                    std::string filename = resultPath + "GC_best_" + heuristicName + "_" + prob.name + ".csv";
                     if (!solverGC.writePathCsv(greedyGC, filename))
                         std::cerr << "Failed to write " << filename << std::endl;
                 }

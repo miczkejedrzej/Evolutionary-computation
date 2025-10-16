@@ -3,8 +3,8 @@
 #include <random>
 #include <list>
 #include "GreedySolver.h"
-#include "ProblemInstance.h"
-#include "Solver.h"
+#include "../../src/ProblemInstance.h"
+#include "../../src/Solver.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <cassert>
