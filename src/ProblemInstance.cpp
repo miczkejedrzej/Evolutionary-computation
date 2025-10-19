@@ -89,7 +89,7 @@ int64_t ProblemInstance::GetCostAndDistance(size_t from, size_t to) const {
     return distances[from][to];
 }
 
-int64_t ProblemInstance::GetRawDistance(size_t from, size_t to) const {
+int64_t ProblemInstance::GetDistance(size_t from, size_t to) const {
     return  distances_no_cost[from][to];
 }
 int64_t ProblemInstance::GetX(size_t index) const {

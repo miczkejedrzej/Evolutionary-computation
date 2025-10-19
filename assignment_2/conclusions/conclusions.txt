@@ -1,0 +1,72 @@
+conclusions: 
+1. the regret heuristic works substantialy worse than the greedy for our version of the TSP.
+2. Our hypothesis why this happens, is because in the regret approach we check for each city what would be the difference between 
+insertion it right now - at the optimal position, and later in the future- possibly at worse position. However this
+approach does not take into account the fact that we do not have to include the given city into the cycle at all.
+ This is further confirmed by the experiment when we run the problem with whole 200 cities, which boils down to tsp without
+the node costs assosciated with individual cities. In this settings regret heuristic outperforms the greedy for both algorithms
+the latex tables with the results:
+for the instance  a
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lcc}
+\hline
+\textbf{Approach} & \textbf{Nearest Neighbour} & \textbf{Greedy Cycle} \\
+\hline
+Regret            &  130644 &  130972 \\
+Hybrid 0.5        & 132092 & 132499 \\
+Greedy             & 131903 & 133043 \\
+\hline
+\end{tabular}
+\caption{Best costs for different approaches and algorithms on problem instance when all cities taken B.}
+\label{tab:best_costs_B}
+\end{table}
+
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lcc}
+\hline
+\textbf{Approach} & \textbf{Nearest Neighbour} & \textbf{Greedy Cycle} \\
+\hline
+Regret            & 227502 & 227066 \\
+Hybrid 0.5        & 228086 & 228525 \\
+Greedy             & 229495 & 228943 \\
+\hline
+\end{tabular}
+\caption{Best costs for different approaches and algorithms on problem instance A when all cities taken.}
+\label{tab:best_costs_A}
+\end{table}
+
+
+for the instance b
+
+2. The hybrid heuristic can have different best values for different algorithms and different instances
+
+see all the graphs in assignment2/visualizations starting with the *instance*
+
+The graphs with the cycles for the best examples are are in vsiualizations: there is for each algorithm 
+and instance visualization for regret - greedy and best_hybrid
+
+3. Lastly there are plotted the changes of the cost with respect to the number of cities included
+in the path for each city instance for each algorithm, but no conclusiosn drawn from this - assumption
+was maybe the regret will firstly grow steeper than greedy and later less steep, but it does not seem
+so from the plots
+
+
+PLOTS:
+assignmnet2/visualizations :
+
+starting with letter(A,B) -  graph visualization either for pure regret or greedy, or best hybrid weight for 
+given algorithm and problem
+
+starting with instance -  the visualization of costs with repsect to the weight in hybrid -  no need to plot
+all but would be nice to show probably that they difference
+
+starting with TSP  - the change of cost with respect to the number of visited cities, not
+many conclusiosn for me, but probably good to include just to show.
+
+
+
+

@@ -33,7 +33,7 @@ public:
 
     int64_t GetCostAndDistance(size_t from, size_t to) const;
     
-    int64_t GetRawDistance(size_t from, size_t to) const;
+    int64_t GetDistance(size_t from, size_t to) const;
 
     int64_t GetX(size_t index) const;
 

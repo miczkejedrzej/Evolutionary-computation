@@ -50,7 +50,8 @@ struct Node_List {
 };
 
 
-GreedySolver::GreedySolver(const ProblemInstance& prob, int start_idx, GreedyMode mode, Heuristic heuristic)
+GreedySolver::GreedySolver(const ProblemInstance& prob, int start_idx, GreedyMode mode, Heuristic heuristic,
+float weightObjective)
     : Solver(prob), mode_(mode), heuristic(heuristic), starting_index(start_idx) {}
 
 int GreedySolver::getStartingIndex() { return starting_index; }
@@ -61,10 +62,14 @@ void GreedySolver::AssertHamiltonian(const std::vector<int>& visited, int cities
     assert((int)uniqueCities.size() == citiesNumber);
 }
 
-// 2-regret objective and hybrid
-// we want to maximize regret cost_best_insertion- cost_second_best_insertion
-// since we maximixe, in hybrid we must use -cost
-int GreedySolver::ObjectiveEvaluation(const Node_List& node_list, Heuristic heuristic, float weight_objective) {
+void GreedySolver::setWeight(float weight){
+    GreedySolver::weight = weight;
+}
+
+float GreedySolver::getWeight(){
+    return weight;
+}
+int GreedySolver::ObjectiveEvaluation(const Node_List& node_list, Heuristic heuristic) {
     const auto& costs = node_list.get_cost();
     if (costs.empty()) return INT_MAX;
 
@@ -73,8 +78,14 @@ int GreedySolver::ObjectiveEvaluation(const Node_List& node_list, Heuristic heur
     if (heuristic == Heuristic::Regret)
         return regret2; // just 2-regret
     else // Hybrid
-        return static_cast<int>((1.0 - weight_objective) * (regret2) + weight_objective * (-costs[0]));
+    {
+        float weightObjective = getWeight();
+        return static_cast<int>((1.0 - weightObjective) * (regret2) + weightObjective * (-costs[0]));
+    }
 }
+
+
+
 
 std::vector<int> GreedySolver::solveElementNearestNeighbour(
     int targetSize, const std::vector<int>& visited, const std::vector<int>& unvisited, Heuristic heuristic)
@@ -93,13 +104,15 @@ std::vector<int> GreedySolver::solveElementNearestNeighbour(
         for (size_t pos = 0; pos <= visited.size(); ++pos) {
             int deltaCost;
             if (pos == 0)
-                deltaCost = problem.GetCostAndDistance( visited.front(),city);
+                deltaCost = problem.GetDistance( visited.front(),city) + problem.GetCost(city);
             else if (pos == visited.size())
-                deltaCost = problem.GetCostAndDistance(visited.back(), city);
+                deltaCost = problem.GetDistance(visited.back(), city) +problem.GetCost(city) ;
             else {
-                int oldEdge = problem.GetCostAndDistance(visited[pos - 1], visited[pos]);
-                int newEdges = problem.GetCostAndDistance(visited[pos - 1], city) +
-                               problem.GetCostAndDistance(city, visited[pos]);
+                int oldEdge = problem.GetDistance(visited[pos - 1], visited[pos]) +
+                problem.GetCost(visited[pos]) ;
+                int newEdges = problem.GetDistance(visited[pos - 1], city) + 
+                                problem.GetCost(city) +
+                               problem.GetDistance(city, visited[pos]) + problem.GetCost(visited[pos]);
                 deltaCost = newEdges - oldEdge;
             }
             nodeList.insert(pos, city, deltaCost);
@@ -133,17 +146,22 @@ std::vector<int> GreedySolver::solveElementGreedyCycle(
         for (size_t pos = 0; pos <= nVisited; ++pos) {
             int deltaCost;
             if (pos == 0)
-                deltaCost = problem.GetCostAndDistance(visited.front(), city) +
-                            problem.GetRawDistance(city, visited.back()) -
-                            problem.GetRawDistance(visited.front(), visited.back());
+                deltaCost = problem.GetDistance(visited.front(), city) +
+                            problem.GetCost(city) +
+                            problem.GetDistance(city, visited.back()) -
+                            problem.GetDistance(visited.front(), visited.back());
             else if (pos == nVisited)
-                deltaCost = problem.GetCostAndDistance(visited.back(), city) +
-                            problem.GetRawDistance(city, visited.front()) -
-                            problem.GetRawDistance(visited.back(), visited.front());
+                deltaCost = problem.GetDistance(visited.back(), city) +
+                            problem.GetCost(city) +
+                            problem.GetDistance(city, visited.front()) -
+                            problem.GetDistance(visited.back(), visited.front());
             else {
-                int oldEdge = problem.GetCostAndDistance(visited[pos - 1], visited[pos]);
-                int newEdges = problem.GetCostAndDistance(visited[pos - 1], city) +
-                               problem.GetCostAndDistance(city, visited[pos]);
+                int oldEdge = problem.GetDistance(visited[pos - 1], visited[pos])+
+                problem.GetCost(visited[pos]);
+                int newEdges = problem.GetDistance(visited[pos - 1], city) +
+                                problem.GetCost(city) +
+                               problem.GetDistance(city, visited[pos]) +
+                               problem.GetCost(visited[pos]);
                 deltaCost = newEdges - oldEdge;
             }
             nodeList.insert(pos, city, deltaCost);

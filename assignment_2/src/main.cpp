@@ -13,6 +13,8 @@ int main() {
     ProblemInstance prob2("./data/TSPB.csv", 100, "B");
     std::vector<ProblemInstance> probs = {prob1, prob2};
 
+    std::vector<float> weights = {0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
+
     std::string resultPath = "./assignment_2/results/";
 
     for (auto& prob : probs) {
@@ -23,61 +25,129 @@ int main() {
 
             std::cout << "=== Testing " << prob.name << " with heuristic: " << heuristicName << " ===\n";
 
-            // Initialize best, worst, and median trackers
-            int64_t bestNN = INT64_MAX, bestGC = INT64_MAX;
-            int64_t worstNN = INT64_MIN, worstGC = INT64_MIN;
-            int64_t sumNN = 0, sumGC = 0;
+            if(heuristic == Heuristic::HybridRegretObjective){
 
-            int numCities = prob.getNumCities()/20;
+                for(int i =0; i< weights.size();i++){
 
-            // --- iterate over all starting cities ---
-            for (int startIdx = 0; startIdx < numCities; ++startIdx) {
-                // --- Nearest Neighbour ---
-                GreedySolver solverNN(prob, startIdx, GreedyMode::NearestNeighbour, heuristic);
-                std::vector<int> greedyNN = solverNN.solve();
-                int64_t nnCost = prob.FullDistanceAndCost(greedyNN);
-                sumNN += nnCost;
+                    float weight_element = weights[i];
+                    // Initialize best, worst, and median trackers
+                    int64_t bestNN = INT64_MAX, bestGC = INT64_MAX;
+                    int64_t worstNN = INT64_MIN, worstGC = INT64_MIN;
+                    int64_t sumNN = 0, sumGC = 0;
 
-                if (nnCost < bestNN) {
-                    bestNN = nnCost;
-                    std::string filename = resultPath + "NN_best_" + heuristicName + "_" + prob.name + ".csv";
-                    if (!solverNN.writePathCsv(greedyNN, filename))
-                        std::cerr << "Failed to write " << filename << std::endl;
+                    int numCities = prob.getNumCities();
+
+                    // --- iterate over all starting cities ---
+                    for (int startIdx = 0; startIdx < numCities; ++startIdx) {
+                        // --- Nearest Neighbour ---
+                        std::string string_weight = std::to_string(weight_element);
+                        GreedySolver solverNN(prob, startIdx, GreedyMode::NearestNeighbour, heuristic,weight_element);
+                        solverNN.setWeight(weight_element);
+                        std::vector<int> greedyNN = solverNN.solve();
+                        int64_t nnCost = prob.FullDistanceAndCost(greedyNN);
+                        sumNN += nnCost;
+                        
+
+                        if (nnCost < bestNN) {
+                            bestNN = nnCost;
+                            std::string filename = resultPath + "NN_best_" + heuristicName + "_" + prob.name + "_" + string_weight +"_" + ".csv";
+                            if (!solverNN.writePathCsv(greedyNN, filename))
+                                std::cerr << "Failed to write " << filename << std::endl;
+                        }
+                        if (nnCost > worstNN) worstNN = nnCost;
+
+                        // --- Greedy Cycle ---
+                        GreedySolver solverGC(prob, startIdx, GreedyMode::GreedyCycle, heuristic);
+                        solverGC.setWeight(weight_element);
+                        std::vector<int> greedyGC = solverGC.solve();
+                        int64_t gcCost = prob.FullDistanceAndCost(greedyGC);
+                        sumGC += gcCost;
+
+                        if (gcCost < bestGC) {
+                            bestGC = gcCost;
+                            std::string filename = resultPath + "GC_best_" + heuristicName + "_" + prob.name + "_" + string_weight +"_" + ".csv";
+                            if (!solverGC.writePathCsv(greedyGC, filename))
+                                std::cerr << "Failed to write " << filename << std::endl;
+                        }
+                        if (gcCost > worstGC) worstGC = gcCost;
+                    }
+
+                    // Compute average (median approximation)
+                    double avgNN = static_cast<double>(sumNN) / numCities;
+                    double avgGC = static_cast<double>(sumGC) / numCities;
+
+                    
+                    // --- Print results ---
+                    
+                    std::cout << "\n--- Results for " << prob.name << " (" << heuristicName << ") ---\n";
+                    std::cout << "Nearest Neighbour:\n";
+                    std::cout << "  Best:   " << bestNN << "\n";
+                    std::cout << "  Worst:  " << worstNN << "\n";
+                    std::cout << "  Average: " << avgNN << "\n\n";
+
+                    std::cout << "Greedy Cycle:\n";
+                    std::cout << "  Best:   " << bestGC << "\n";
+                    std::cout << "  Worst:  " << worstGC << "\n";
+                    std::cout << "  Average: " << avgGC << "\n\n";
                 }
-                if (nnCost > worstNN) worstNN = nnCost;
+        }
 
-                // --- Greedy Cycle ---
-                GreedySolver solverGC(prob, startIdx, GreedyMode::GreedyCycle, heuristic);
-                std::vector<int> greedyGC = solverGC.solve();
-                int64_t gcCost = prob.FullDistanceAndCost(greedyGC);
-                sumGC += gcCost;
+            else{
 
-                if (gcCost < bestGC) {
-                    bestGC = gcCost;
-                    std::string filename = resultPath + "GC_best_" + heuristicName + "_" + prob.name + ".csv";
-                    if (!solverGC.writePathCsv(greedyGC, filename))
-                        std::cerr << "Failed to write " << filename << std::endl;
+                int64_t bestNN = INT64_MAX, bestGC = INT64_MAX;
+                int64_t worstNN = INT64_MIN, worstGC = INT64_MIN;
+                int64_t sumNN = 0, sumGC = 0;
+
+                int numCities = prob.getNumCities();
+
+                // --- iterate over all starting cities ---
+                for (int startIdx = 0; startIdx < numCities; ++startIdx) {
+                    // --- Nearest Neighbour ---
+                    GreedySolver solverNN(prob, startIdx, GreedyMode::NearestNeighbour, heuristic);
+                    std::vector<int> greedyNN = solverNN.solve();
+                    int64_t nnCost = prob.FullDistanceAndCost(greedyNN);
+                    sumNN += nnCost;
+                    if (nnCost < bestNN) {
+                        bestNN = nnCost;
+                        std::string filename = resultPath + "NN_best_" + heuristicName + "_" + prob.name  +"_" + ".csv";
+                        if (!solverNN.writePathCsv(greedyNN, filename))
+                            std::cerr << "Failed to write " << filename << std::endl;
+                    }
+                    if (nnCost > worstNN) worstNN = nnCost;
+
+                    // --- Greedy Cycle ---
+                    GreedySolver solverGC(prob, startIdx, GreedyMode::GreedyCycle, heuristic);
+                    std::vector<int> greedyGC = solverGC.solve();
+                    int64_t gcCost = prob.FullDistanceAndCost(greedyGC);
+                    sumGC += gcCost;
+
+                    if (gcCost < bestGC) {
+                        bestGC = gcCost;
+                        std::string filename = resultPath + "GC_best_" + heuristicName + "_" + prob.name + ".csv";
+                        if (!solverGC.writePathCsv(greedyGC, filename))
+                            std::cerr << "Failed to write " << filename << std::endl;
+                    }
+                    if (gcCost > worstGC) worstGC = gcCost;
                 }
-                if (gcCost > worstGC) worstGC = gcCost;
+
+                // Compute average (median approximation)
+                double avgNN = static_cast<double>(sumNN) / numCities;
+                double avgGC = static_cast<double>(sumGC) / numCities;
+
+                // --- Print results ---
+                std::cout << "\n--- Results for " << prob.name << " (" << heuristicName << ") ---\n";
+                std::cout << "Nearest Neighbour:\n";
+                std::cout << "  Best:   " << bestNN << "\n";
+                std::cout << "  Worst:  " << worstNN << "\n";
+                std::cout << "  Average: " << avgNN << "\n\n";
+
+                std::cout << "Greedy Cycle:\n";
+                std::cout << "  Best:   " << bestGC << "\n";
+                std::cout << "  Worst:  " << worstGC << "\n";
+                std::cout << "  Average: " << avgGC << "\n\n";
+
             }
-
-            // Compute average (median approximation)
-            double avgNN = static_cast<double>(sumNN) / numCities;
-            double avgGC = static_cast<double>(sumGC) / numCities;
-
-            // --- Print results ---
-            std::cout << "\n--- Results for " << prob.name << " (" << heuristicName << ") ---\n";
-            std::cout << "Nearest Neighbour:\n";
-            std::cout << "  Best:   " << bestNN << "\n";
-            std::cout << "  Worst:  " << worstNN << "\n";
-            std::cout << "  Average: " << avgNN << "\n\n";
-
-            std::cout << "Greedy Cycle:\n";
-            std::cout << "  Best:   " << bestGC << "\n";
-            std::cout << "  Worst:  " << worstGC << "\n";
-            std::cout << "  Average: " << avgGC << "\n\n";
         }
     }
-
-    return 0;
+     return 0;
 }
