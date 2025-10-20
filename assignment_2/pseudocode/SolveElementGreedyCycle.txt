@@ -1,0 +1,53 @@
+ALGORITHM SolveElementGreedyCycle(problem, VISITED, UNVISITED, heuristic, weight)
+INPUT:
+    problem     – problem instance
+    VISITED     – current partial Hamiltonian cycle
+    UNVISITED   – remaining cities
+    heuristic   – {REGRET, HYBRID}
+    weight      – weight parameter for HYBRID heuristic
+
+OUTPUT:
+    (best_position, best_city, best_score)
+
+1.  best_score ← −∞
+2.  best_city ← None
+3.  best_position ← None
+
+4.  FOR each city ∈ UNVISITED DO
+5.      NodeList ← empty list to store top 2 insertion options (by cost)
+
+6.      FOR each possible insertion position pos ∈ [0, |VISITED|] DO
+7.          IF pos = 0 THEN
+8.              Δcycle_cost ← 
+                    cost of inserting the city between the first and last nodes 
+                    − cost of the existing connection between first and last nodes
+9.          ELSE IF pos = |VISITED| THEN
+10.             Δcycle_cost ← 
+                    cost of inserting the city between the last and the first nodes
+                    − cost of the previous closure between last and first nodes
+11.         ELSE
+12.             Δcycle_cost ← 
+                    cost of inserting the city between two consecutive nodes in the cycle 
+                    − cost of the direct connection that previously linked those two nodes
+13.         END IF
+
+14.         NodeList.insert(pos, city, Δcycle_cost)
+15.      END FOR
+
+16.      // --- Evaluate insertion quality based on heuristic
+17.      IF heuristic = REGRET THEN
+18.          score ← (second_best_cost − best_cost)
+19.      ELSE IF heuristic = HYBRID THEN
+20.          score ← (1 − weight) * (second_best_cost − best_cost)
+21.                  + weight * (−best_cost)
+22.      END IF
+
+23.      IF score > best_score THEN
+24.          best_score ← score
+25.          best_city ← city
+26.          best_position ← position_of_best_cost
+27.      END IF
+28.  END FOR
+
+29.  RETURN (best_position, best_city, best_score)
+

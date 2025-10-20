@@ -1,0 +1,32 @@
+ALGORITHM Solve(problem, mode, heuristic, start_index, weight)
+INPUT:
+    problem     – problem instance
+    mode        – {NearestNeighbour, GreedyCycle}
+    heuristic   – {REGRET, HYBRID}
+    start_index – index of the starting city
+    weight      – weight parameter for HYBRID heuristic
+
+OUTPUT:
+    VISITED – sequence of cities forming the Hamiltonian path
+
+1.  target_size ← problem.GetNumberCitiesInCycle()
+2.  VISITED ← empty list
+3.  UNVISITED ← list of all city indices in the problem
+
+4.  start_city ← UNVISITED[start_index]
+5.  Add start_city to VISITED
+6.  Remove start_city from UNVISITED
+
+7.  WHILE |VISITED| < target_size DO
+8.      IF mode = NearestNeighbour THEN
+9.          (pos, city, score) ← SolveElementNearestNeighbour(problem, VISITED, UNVISITED, heuristic, weight)
+10.     ELSE
+11.         (pos, city, score) ← SolveElementGreedyCycle(problem, VISITED, UNVISITED, heuristic, weight)
+12.     END IF
+
+13.     Insert city into VISITED at position pos
+14.     Remove city from UNVISITED
+15.  END WHILE
+
+16.  Assert that VISITED forms a valid Hamiltonian solution
+17.  RETURN VISITED

@@ -1,0 +1,50 @@
+ALGORITHM SolveElementNearestNeighbour(problem, VISITED, UNVISITED, heuristic, weight)
+INPUT:
+    problem     – problem instance
+    VISITED     – current partial Hamiltonian path
+    UNVISITED   – remaining cities
+    heuristic   – {REGRET, HYBRID}
+    weight      – weight parameter for HYBRID heuristic
+
+OUTPUT:
+    (best_position, best_city, best_score)
+
+1.   best_score ← −∞
+2.   best_city ← None
+3.   best_position ← None
+4.   
+5.   FOR each city ∈ UNVISITED DO
+6.       NodeList ← empty list to store top 2 insertion options (by cost)
+7.       
+8.       FOR each possible insertion position pos ∈ [0, |VISITED|] DO
+9.           IF pos = 0 THEN
+10.              Δpath_cost ← cost of inserting the city before the first node
+11.          ELSE IF pos = |VISITED| THEN
+12.              Δpath_cost ← cost of inserting the city after the last node
+13.          ELSE
+14.              Δpath_cost ← cost of inserting the city between two consecutive nodes
+15.                            − cost of the direct connection that previously linked those nodes
+16.          END IF
+17.          
+18.          NodeList.insert(pos, city, Δpath_cost)
+19.      END FOR
+20.      
+21.      // --- Evaluate insertion quality based on heuristic
+22.      IF heuristic = REGRET THEN
+23.          score ← (second_best_cost − best_cost)
+24.      ELSE IF heuristic = HYBRID THEN
+25.          score ← (1 − weight) * (second_best_cost − best_cost)
+26.                  + weight * (−best_cost)
+27.      END IF
+28.      
+29.      IF score > best_score THEN
+30.          best_score ← score
+31.          best_city ← city
+32.          best_position ← position_of_best_cost
+33.      END IF
+34.  END FOR
+35.  
+36.  RETURN (best_position, best_city, best_score)
+
+
+
