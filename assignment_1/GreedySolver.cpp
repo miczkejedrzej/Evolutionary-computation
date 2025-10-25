@@ -61,7 +61,7 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
             int city = unvisited[cityIdx];
             
             // Case for extending the beggining - no need for rerouting the previous path
-            int64_t costBegin = problem.GetDistance(visited[0],city) +problem.GetCost(city);
+            int64_t costBegin = problem.GetCostAndDistance(visited[0],city);
             if (costBegin < bestCost) {
                 bestCost = costBegin;
                 bestInsertPos = 0;
@@ -69,7 +69,7 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
             }
 
             // Try inserting at end position, no need to rerouting 
-            int64_t costEnd = problem.GetDistance(visited.back(), city) + problem.GetCost(city);
+            int64_t costEnd = problem.GetCostAndDistance(visited.back(), city);
             if (costEnd < bestCost) {
                 bestCost = costEnd;
                 bestInsertPos = static_cast<int>(visited.size());
@@ -79,9 +79,9 @@ std::vector<int> GreedySolver::solveNearestNeighbour() {
             // Try inserting in middle positions ( - account for the rerouting to keep the solution
             // a proper hamiltonian
             for (int pos = 1; pos < visited.size(); ++pos) {
-                int64_t oldEdge = problem.GetDistance(visited[pos-1], visited[pos]) ;
-                int64_t newEdges = problem.GetDistance(visited[pos-1], city) +  problem.GetCost(city)+
-                                    problem.GetDistance(city, visited[pos]);
+                int64_t oldEdge = problem.GetCostAndDistance(visited[pos-1], visited[pos]);
+                int64_t newEdges = problem.GetCostAndDistance(visited[pos-1], city) + 
+                                    problem.GetCostAndDistance(city, visited[pos]);
                 int64_t deltaCost = newEdges - oldEdge;
 
                 if (deltaCost < bestCost) {
@@ -178,7 +178,7 @@ std::vector<int> GreedySolver::solveGreedyCycle() {
                 }
 
                  //try inserting at the end, no need for rerouting but change of the cycle closing edge
-                int64_t costEnd = problem.GetDistance(visited.back(), city) + problem.GetCost(city)+
+                int64_t costEnd = problem.GetDistance(visited.back(), city) + problem.GetCost(city)
                 + problem.GetDistance(city,visited[0]);
                 int64_t costEndDelta = costEnd - problem.GetDistance(visited[0],visited.back());
                 if (costEndDelta < bestCost) {
@@ -193,8 +193,9 @@ std::vector<int> GreedySolver::solveGreedyCycle() {
                     // no change of the clsoing of the cycle with respect to previous state
 
                     int64_t oldEdge = problem.GetDistance(visited[pos-1], visited[pos]);
-                    int64_t newEdges = problem.GetDistance(visited[pos-1], city) + problem.GetCost(city)+
-                                        problem.GetDistance(city, visited[pos]);
+                    int64_t newEdges = problem.GetDistance(visited[pos-1], city) + 
+                                        problem.GetDistance(city, visited[pos])+
+                                        problem.GetCost(city);
                     int64_t deltaCost = newEdges - oldEdge;
                     // no change for the cycle closing so do not, include it into the delta function
                     if (deltaCost < bestCost) {
