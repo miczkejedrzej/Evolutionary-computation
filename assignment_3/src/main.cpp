@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-
+#include <chrono>
 
 int main() {
     // --- Load problem instances ---
@@ -42,15 +42,32 @@ int main() {
                     int64_t worstCost = INT64_MIN;
                     int64_t sumCost = 0;
 
+                    // Timing variables
+                    int bestTime = INT_MAX;
+                    int worstTime = INT_MIN;
+                    int64_t sumTime = 0;
+
                     int numCities = prob.getNumCities();
                     std::vector<int> bestSolution;
 
                     // --- Iterate over all starting cities ---
                     for (int startIdx = 0; startIdx < numCities; ++startIdx) {
+                        auto start = std::chrono::high_resolution_clock::now();
+
                         LocalSearchSolver solver(prob, localSearchType, intraMoveType, startSolutionType, startIdx, startIdx);
                         std::vector<int> solution = solver.solve();
                         int64_t cost = prob.FullDistanceAndCost(solution);
                         sumCost += cost;
+
+                        auto end = std::chrono::high_resolution_clock::now();
+                        int duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                        sumTime += duration;
+
+                        if (duration < bestTime)
+                            bestTime = duration;
+                        
+                        if (duration > worstTime)
+                            worstTime = duration;
 
                         if (cost < bestCost) {
                             bestCost = cost;
@@ -76,6 +93,11 @@ int main() {
                     std::cout << "  Best:    " << bestCost << "\n";
                     std::cout << "  Worst:   " << worstCost << "\n";
                     std::cout << "  Average: " << avgCost << "\n";
+
+                    std::cout << "\n" << "  TIME (ms)" << "\n"
+                              << "  Best: " << bestTime << "\n"
+                              << "  Worst: " << worstTime << "\n"
+                              << "  Average: " << static_cast<double>(sumTime) / numCities << "\n";
                 }
             }
         }

@@ -191,13 +191,12 @@ std::vector<int> LocalSearchSolver::initializeSolution() {
         return result;
     }
     
-     int starting_index = giveStartingIndex(); // or any index you want to start from
-     GreedySolver greedySolver(problem, starting_index, GreedyMode::NearestNeighbour, Heuristic::HybridRegretObjective);
-
+    int starting_index = giveStartingIndex(); // or any index you want to start from
+    GreedySolver greedySolver(problem, starting_index, GreedyMode::NearestNeighbour, Heuristic::HybridRegretObjective);
+    greedySolver.setWeight(0.5f); // Set weight for hybrid heuristic
         // Solve using greedy heuristic
-     std::vector<int> greedy_solution = greedySolver.solve();
-
-     return greedy_solution;
+    std::vector<int> greedy_solution = greedySolver.solve();
+    return greedy_solution;
 }
 
 int LocalSearchSolver::giveStartingIndex(){
