@@ -1,7 +1,7 @@
 #pragma once
 #include "../../src/ProblemInstance.h"
 #include "../../src/Solver.h"
-#include "../../assignment_1/src/GreedySolver.h"
+#include "../../assignment_2/src/GreedySolver.h"
 #include <vector>
 #include <random>
 #include <algorithm>

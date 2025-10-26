@@ -1,5 +1,5 @@
 #include "../../src/ProblemInstance.h"
-#include "../../assignment_1/src/GreedySolver.h"
+#include "../../assignment_2/src/GreedySolver.h"
 #include "../../src/Solver.h"
 #include "LocalSearchSolver.h"
 #include <iostream>

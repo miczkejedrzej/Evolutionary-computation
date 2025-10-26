@@ -1,7 +1,7 @@
 #include "LocalSearchSolver.h"
 #include <algorithm>
 #include <numeric>
-#include<cmath>
+#include <cmath>
 #include <valarray>
 #include <iostream>
 #include <sstream>
@@ -43,8 +43,7 @@ int LocalSearchSolver::calculateDeltaInter(const std::vector<int>& solution, int
 int LocalSearchSolver::calculateDeltaIntraTwoNode(const std::vector<int>& solution, int i, int j) {
     // this condition made since teh case is symmetric , ie exchanging positiong between nodes 
     // i and j is tantamount to exchanging to position between j and i  
-    if ( j<=i) return INT_MAX;
-
+    if (j <= i) return INT_MAX;
 
     int n = static_cast<int>(solution.size());
     if (i == 0 && j == n-1) {
@@ -54,16 +53,11 @@ int LocalSearchSolver::calculateDeltaIntraTwoNode(const std::vector<int>& soluti
     int last = solution[j];
     int next_i = solution[i+1];
 
-    int oldEdges =  problem.GetDistance(first, next_i) + problem.GetDistance(prev_j, last);
+    int oldEdges = problem.GetDistance(first, next_i) + problem.GetDistance(prev_j, last);
     int newEdges = problem.GetDistance(prev_j, first)  + problem.GetDistance(last, next_i);
 
     return newEdges - oldEdges;
 }
-
-
-
-
-    
 
     // ----- Adjacent nodes -----
     if (j == i + 1 || (i==0 && j == n-1)) {
@@ -196,10 +190,9 @@ std::vector<int> LocalSearchSolver::initializeSolution() {
         std::vector<int> result = slicing(sol,numCitiesInCycle - 1);
         return result;
     }
-
     
      int starting_index = giveStartingIndex(); // or any index you want to start from
-     GreedySolver greedySolver(problem, starting_index, GreedyMode::GreedyCycle);
+     GreedySolver greedySolver(problem, starting_index, GreedyMode::NearestNeighbour, Heuristic::HybridRegretObjective);
 
         // Solve using greedy heuristic
      std::vector<int> greedy_solution = greedySolver.solve();
@@ -220,12 +213,7 @@ std::vector<int> LocalSearchSolver::solve() {
     // Remove selected from unselected
     for (int idx : solution)
         unselected.erase(std::remove(unselected.begin(), unselected.end(), idx), unselected.end());
-
-
     while (true) {
-
-    
-
         MoveDelta move = (searchType_ == LocalSearchType::Steepest)
                          ? findBestMove(solution, unselected)
                          : findRandomGreedyMove(solution, unselected);
@@ -251,6 +239,3 @@ std::vector<int> LocalSearchSolver::solve() {
     AssertHamiltonian(solution,problem.GetNumberCitiesInCycle());
     return solution;
 }
-
-
-

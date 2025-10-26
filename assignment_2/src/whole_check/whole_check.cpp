@@ -1,6 +1,6 @@
-#include "../../src/ProblemInstance.h"
-#include "GreedySolver.h"
-#include "../../src/Solver.h"
+#include "../../../src/ProblemInstance.h"
+#include "../GreedySolver.h"
+#include "../../../src/Solver.h"
 #include <iostream>
 #include <climits>
 #include <string>
