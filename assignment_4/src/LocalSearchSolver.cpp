@@ -11,6 +11,7 @@
 #include <cassert>
 #include <unordered_set>
 #include <chrono>
+#include <unordered_map>
 LocalSearchSolver::LocalSearchSolver(const ProblemInstance& prob,
                                      int randomSeed)
     : Solver(prob),
@@ -56,6 +57,7 @@ struct Node_List {
 
     // std::vector<int> get_cost() const { return cost; }
     // int get_best_pos() const { return startIndex.empty() ? -1 : startIndex.front(); }
+    
     std::vector<int> get_best_indices() const {
         std::vector<int> indices;
         for (size_t i = 0; i < startIndex.size(); ++i) {
@@ -140,35 +142,39 @@ MoveDelta LocalSearchSolver::findBestMove(const std::vector<int>& solution, cons
     // Find all of the candidate edges
     // Use the Node_List from assignment 2 to get them
 
-    std::vector<int> allIndices = problem.GiveIndices();
+    // Use only candidate edges as parameters
+    // Use different functions depending on if the other node is also in the solution or not
+
+    std::unordered_map<int, int> solutionIndex;
+    solutionIndex.reserve(solution.size());
+    for (int i = 0; i < solution.size(); ++i)
+        solutionIndex[solution[i]] = i;
+
+    std::unordered_map<int, int> unselectedIndex;
+    unselectedIndex.reserve(unselected.size());
+    for (int i = 0; i < unselected.size(); ++i)
+        unselectedIndex[unselected[i]] = i;
 
     for (int startNodeIdx = 0; startNodeIdx < solution.size(); ++startNodeIdx) {
         for (int endNode : candidateEdges[solution[startNodeIdx]]) {
-            auto it = std::find(solution.begin(), solution.end(), endNode);
-            if (it != solution.end()) {
-                int idx_i = startNodeIdx;
-                int idx_j = std::distance(solution.begin(), it);
-                int delta = calculateDeltaIntraTwoEdge(solution, idx_i, idx_j);
+            if (solutionIndex.count(endNode)) {
+                int idx_j = solutionIndex[endNode];
+                int delta = calculateDeltaIntraTwoEdge(solution, startNodeIdx, idx_j);
                 if (delta < bestMove.delta) {
-                    bestMove = {idx_i, idx_j, delta, MoveType::IntraEdge};
+                    bestMove = {startNodeIdx, idx_j, delta, MoveType::IntraEdge};
                 }
             } else {
-                int idx_i = startNodeIdx;
-                int idx_j = std::distance(unselected.begin(), std::find(unselected.begin(), unselected.end(), endNode));
-                int delta = calculateDeltaInter(solution, idx_i, idx_j, unselected);
+                int idx_j = unselectedIndex[endNode];
+                int delta = calculateDeltaInter(solution, startNodeIdx, idx_j, unselected);
                 if (delta < bestMove.delta) {
-                    bestMove = {idx_i, idx_j, delta, MoveType::InterNode};
+                    bestMove = {startNodeIdx, idx_j, delta, MoveType::InterNode};
                 }
             }
         }
     }
 
-    // Use only candidate edges as parameters
-    // Use different functions depending on if the other node is also in the solution or not
-
     // auto end = std::chrono::high_resolution_clock::now();
     // int duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-
     // std::cout << "Single move selection time: " << duration << " ns" << std::endl;
 
     return bestMove;
