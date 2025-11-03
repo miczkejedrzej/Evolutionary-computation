@@ -163,6 +163,11 @@ MoveDelta LocalSearchSolver::findBestMove(const std::vector<int>& solution, cons
                 if (delta < bestMove.delta) {
                     bestMove = {startNodeIdx, idx_j, delta, MoveType::IntraEdge};
                 }
+
+                delta = calculateDeltaIntraTwoEdge(solution, idx_j, startNodeIdx);
+                if (delta < bestMove.delta) {
+                    bestMove = {idx_j, startNodeIdx, delta, MoveType::IntraEdge};
+                }
             } else {
                 int idx_j = unselectedIndex[endNode];
 
