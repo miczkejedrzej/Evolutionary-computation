@@ -169,6 +169,13 @@ MoveDelta LocalSearchSolver::findBestMove(const std::vector<int>& solution, cons
                 if (delta < bestMove.delta) {
                     bestMove = {startNodeIdx, idx_j, delta, MoveType::InterNode};
                 }
+
+                int otherStartNodeIdx = startNodeIdx - 1;
+                if (otherStartNodeIdx < 0) otherStartNodeIdx = solution.size() - 1;
+                delta = calculateDeltaInter(solution, otherStartNodeIdx, idx_j, unselected);
+                if (delta < bestMove.delta) {
+                    bestMove = {otherStartNodeIdx, idx_j, delta, MoveType::InterNode};
+                }
             }
         }
     }
