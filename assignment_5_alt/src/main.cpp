@@ -14,7 +14,7 @@ int main() {
     ProblemInstance prob2("./data/TSPB.csv", 100, "B");
     std::vector<ProblemInstance> probs = {prob1, prob2};
 
-    std::string resultPath = "./assignment_5/results/";
+    std::string resultPath = "./assignment_5_alt/results/";
 
     // --- Loop through configurations ---
     for (auto& prob : probs) {

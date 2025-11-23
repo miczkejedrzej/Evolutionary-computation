@@ -221,19 +221,15 @@ std::vector<int> LocalSearchSolver::solve() {
                 }
             }
         } else { // IntraEdge
-            // assume move.i1 <= move.i2 (you already ensured that earlier)
             int i = move.i1;
             int j = move.i2;
 
-            // affected tour indices: the whole reversed segment [i..j] and their immediate neighbors i-1 and j+1
             std::vector<int> affected = collectRangeInclusive(i, j, n);
             int leftNeighbor = prevIdx(i, n);
             int rightNeighbor = nextIdx(j, n);
-            // include neighbors (they are affected because their prev/next may change)
             affected.push_back(leftNeighbor);
             affected.push_back(rightNeighbor);
 
-            // make unique (in case of small segments where neighbors overlap)
             std::sort(affected.begin(), affected.end());
             affected.erase(std::unique(affected.begin(), affected.end()), affected.end());
 
@@ -253,7 +249,6 @@ std::vector<int> LocalSearchSolver::solve() {
                     if (b == nextIdx(a, n) || b == prevIdx(a, n)) continue;
                     int x = std::min(a, b);
                     int y = std::max(a, b);
-                    // ensure we only compute upper triangle [x][y] once; setting repeatedly is fine
                     delta2opt[x][y] = calculateDeltaIntraTwoEdge(solution, x, y);
                 }
             }
