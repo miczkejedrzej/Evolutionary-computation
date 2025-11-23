@@ -1,0 +1,31 @@
+Config: n_perturb=10, gene_frac=10, use_bridge=0
+ run parameters << 
+:10
+MSLS SUMMARY for A:
+   Best cost:  71438
+   Worst cost: 75776
+   Avg cost:   73741.1
+   Best time:  11091 ms
+   Worst time: 17937 ms
+   Avg time:   13593.9 ms
+ILS SUMMARY for A:
+   Best cost:  70082
+   Worst cost: 70748
+   Avg cost:   70467.1
+   Best time:  13594 ms
+   Worst time: 13618 ms
+   Avg time:   13605 ms
+MSLS SUMMARY for B:
+   Best cost:  47288
+   Worst cost: 51361
+   Avg cost:   48597.1
+   Best time:  10815 ms
+   Worst time: 20101 ms
+   Avg time:   12546.9 ms
+ILS SUMMARY for B:
+   Best cost:  44031
+   Worst cost: 45240
+   Avg cost:   44695.6
+   Best time:  12547 ms
+   Worst time: 12567 ms
+   Avg time:   12556.3 ms
