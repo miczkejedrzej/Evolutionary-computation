@@ -22,6 +22,7 @@ LocalSearchSolver::LocalSearchSolver(const ProblemInstance& prob,
       startType_(startType),
       rng_(randomSeed),
       startingIndex(startingIndex)
+
 {}
 
 // ---------------- DELTA CALCULATIONS ----------------
@@ -122,6 +123,10 @@ void LocalSearchSolver::AssertHamiltonian(const std::vector<int>& visited, int c
     assert((int)uniqueCities.size() == citiesNumber);
 }
 
+void LocalSearchSolver::setGivenSolution(const std::vector<int>& solution) {
+    givenSolution = solution;
+}
+
 // ---------------- MOVE SELECTION ----------------
 
 MoveDelta LocalSearchSolver::findBestMove(const std::vector<int>& solution, const std::vector<int>& unselected) {
@@ -190,6 +195,7 @@ std::vector<int> LocalSearchSolver::initializeSolution() {
         std::vector<int> result = slicing(sol,numCitiesInCycle - 1);
         return result;
     }
+
     
     int starting_index = giveStartingIndex(); // or any index you want to start from
     GreedySolver greedySolver(problem, starting_index, GreedyMode::NearestNeighbour, Heuristic::HybridRegretObjective);
@@ -207,6 +213,42 @@ int LocalSearchSolver::giveStartingIndex(){
 
 std::vector<int> LocalSearchSolver::solve() {
     std::vector<int> solution = initializeSolution();
+    std::vector<int> unselected = problem.GiveIndices();
+
+    // Remove selected from unselected
+    for (int idx : solution)
+        unselected.erase(std::remove(unselected.begin(), unselected.end(), idx), unselected.end());
+    while (true) {
+        MoveDelta move = (searchType_ == LocalSearchType::Steepest)
+                         ? findBestMove(solution, unselected)
+                         : findRandomGreedyMove(solution, unselected);
+
+        if (move.delta >= 0) break;
+
+        switch (move.type) {
+            case MoveType::InterRoute:
+                std::swap(solution[move.i1], unselected[move.i2]);
+                break;
+            case MoveType::IntraNodeSwap:
+                std::swap(solution[move.i1], solution[move.i2]);
+                break;
+            case MoveType::IntraEdgeSwap:
+                // if (move.i1 > move.i2) std::swap(move.i1, move.i2);
+                // std::reverse(solution.begin() + move.i1, solution.begin() + move.i2 + 1);
+                if (move.i1 > move.i2) std::swap(move.i1, move.i2);
+                    std::reverse(solution.begin() +move.i1 +1, solution.begin()+move.i2+ 1);
+                
+                break;
+        }
+    }
+    AssertHamiltonian(solution,problem.GetNumberCitiesInCycle());
+    return solution;
+}
+
+
+std::vector<int> LocalSearchSolver::solve_from_solution() {
+    //std::vector<int> solution = initializeSolution();
+    std::vector<int> solution = givenSolution;
     std::vector<int> unselected = problem.GiveIndices();
 
     // Remove selected from unselected
