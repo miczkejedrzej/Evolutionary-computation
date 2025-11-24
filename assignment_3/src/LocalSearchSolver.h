@@ -9,7 +9,7 @@
 
 enum class LocalSearchType { Steepest, GreedyRandom };
 enum class MoveType { InterRoute, IntraNodeSwap, IntraEdgeSwap };
-enum class StartSolutionType { Random, Greedy };
+enum class StartSolutionType { Random, Greedy, Given };
 
 struct MoveDelta {
     int i1;
@@ -28,6 +28,8 @@ public:
                       int randomSeed = 42);
 
     std::vector<int> solve();
+    void setGivenSolution(const std::vector<int>& solution);
+    std::vector<int> solve_from_solution();
     
 
 private:
@@ -36,6 +38,8 @@ private:
     StartSolutionType startType_;
     std::mt19937 rng_;
     int startingIndex;
+    std::vector<int> givenSolution;
+  
 
     std::vector<int> slicing(const std::vector<int>& arr, int X);
 
