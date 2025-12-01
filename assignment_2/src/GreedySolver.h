@@ -31,6 +31,8 @@ public:
 
     float getWeight();
 
+    std::vector<int> complete_solution(std::vector<int> partial_solution);
+
 private:
     GreedyMode mode_;
     Heuristic heuristic;

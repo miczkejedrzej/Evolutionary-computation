@@ -1,0 +1,1 @@
+g++ -o assign_7 ./src/*.cpp ./assignment_7/src/*.cpp ./assignment_6/src/MlsSolver.cpp ./assignment_3/src/LocalSearchSolver.cpp ./assignment_2/src/GreedySolver.cpp -std=c++17    
