@@ -16,7 +16,7 @@ int main()
     ProblemInstance prob2("./data/TSPB.csv", 100, "B");
     std::vector<ProblemInstance> probs = {prob1, prob2};
 
-    std::string resultPath = "./assignment_6/results/";
+    std::string resultPath = "./assignment_7/results/";
     std::filesystem::create_directories(resultPath);
 
     const int MSLS_RESTARTS = 200;
