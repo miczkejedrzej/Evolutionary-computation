@@ -55,7 +55,16 @@ for dataset in ['A', 'B']:
         line_x = np.array([xmin, xmax])
         line_y = m * line_x + b
 
-        plt.plot(line_x, line_y, color="red", linewidth=2, label=f"Regression: y = {m:.4f}x + {b:.2f}")
+        # ----- Correlation coefficient -----
+        r = np.corrcoef(x, y)[0, 1]   # Pearson's r
+
+        # Plot regression line
+        plt.plot(
+            line_x, line_y,
+            color="red",
+            linewidth=2,
+            label=f"Linear Regression\nCorrelation Coefficient = {r:.4f}"
+        )
 
         # ----- Titles and labels -----
         plt.title(name)
