@@ -1,0 +1,1 @@
+g++ -std=c++17 -g .\src\*.cpp .\assignment_3\src\LocalSearchSolver.cpp .\assignment_2\src\GreedySolver.cpp .\assignment_8\src\*.cpp -o assignment_8.exe
