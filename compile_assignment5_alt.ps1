@@ -1,1 +1,0 @@
-g++ -std=c++17 -g .\src\*.cpp .\assignment_5_alt\src\*.cpp -o assignment_5c.exe

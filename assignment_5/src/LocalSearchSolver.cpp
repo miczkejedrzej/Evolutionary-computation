@@ -5,13 +5,18 @@
 #include <valarray>
 #include <iostream>
 #include <sstream>
-#include <cmath>
 #include <vector>
 #include <random>
 #include <cassert>
 #include <unordered_set>
 #include <chrono>
 #include <unordered_map>
+
+// ---------------- Utility index helpers ----------------
+inline int prevIdxInline(int i, int n) { return (i - 1 + n) % n; }
+inline int nextIdxInline(int i, int n) { return (i + 1) % n; }
+
+// ---------------- Constructor ----------------
 LocalSearchSolver::LocalSearchSolver(const ProblemInstance& prob,
                                      int randomSeed)
     : Solver(prob),
@@ -19,7 +24,6 @@ LocalSearchSolver::LocalSearchSolver(const ProblemInstance& prob,
 {}
 
 // ---------------- DELTA CALCULATIONS ----------------
-
 int LocalSearchSolver::calculateDeltaInter(const std::vector<int>& solution, int selIdx, int unselIdx, const std::vector<int>& unselected) {
     int oldNode = solution[selIdx];
     int newNode = unselected[unselIdx];
@@ -35,20 +39,22 @@ int LocalSearchSolver::calculateDeltaInter(const std::vector<int>& solution, int
 }
 
 int LocalSearchSolver::calculateDeltaIntraTwoEdge(const std::vector<int>& solution, int i, int j) {
-    if (j <= i+1 || ((i==0) && (j == solution.size()-1))) return INT_MAX; // skip adjacent edges
+    int n = (int)solution.size();
+    if (n < 4) return INT_MAX;
 
-    // it is pointles to consider adjacent edges, since no change would be made 
-    // similarly to intra node exchange, our case is symmetric so we do not need to consider cases of 
-    //  i >  j 
+    // skip adjacency
+    if (j <= i+1 || ((i==0) && (j == n-1))) return INT_MAX;
 
-    int next_i = (i==solution.size()-1) ? solution.front() : solution[i+1];
-    int next_j = (j==solution.size()-1) ? solution.front() : solution[j+1];
-    int oldEdges = problem.GetDistance(solution[i],next_i) +  problem.GetDistance(solution[j],next_j);
-    int newEdges = problem.GetDistance(solution[i],solution[j]) + problem.GetDistance(next_i,next_j);
+    int u1 = solution[i];
+    int v1 = solution[(i + 1) % n];
+    int u2 = solution[j];
+    int v2 = solution[(j + 1) % n];
 
-    return newEdges - oldEdges;
+    int oldCost = problem.GetDistance(u1, v1) + problem.GetDistance(u2, v2);
+    int newCost = problem.GetDistance(u1, u2) + problem.GetDistance(v1, v2);
+
+    return newCost - oldCost;
 }
-
 
 // ---------------- Helper Function ----------------
 
@@ -67,59 +73,302 @@ void LocalSearchSolver::AssertHamiltonian(const std::vector<int>& visited, int c
     assert((int)uniqueCities.size() == citiesNumber);
 }
 
-// ---------------- MOVE SELECTION ----------------
+// ---------------- Internal helpers for LM generation ----------------
 
+// Return position (index) of node in route, -1 if not present
+int LocalSearchSolver::getPositionOfNode(const std::vector<int>& route, int node) const {
+    for (int i = 0; i < (int)route.size(); ++i)
+        if (route[i] == node) return i;
+    return -1;
+}
+
+// Generate all 2-opt / edge-exchange moves across the whole route (explicit 4 variants)
+void LocalSearchSolver::generateAllEdgeMoves(const std::vector<int>& route, const std::vector<std::vector<int>>& /*distMatrix*/, const std::vector<bool>& /*isSelected*/) {
+    int n = (int)route.size();
+    if (n < 4) return;
+
+    // local lambda to add a variant
+    auto tryAdd = [&](int a1, int b1, int a2, int b2) {
+        StoredMove m = StoredMove::MakeEdgeExchange(a1, b1, a2, b2);
+        int oldCost = problem.GetDistance(a1, b1) + problem.GetDistance(a2, b2);
+        int newCost = problem.GetDistance(a1, a2) + problem.GetDistance(b1, b2);
+        int delta = newCost - oldCost;
+        if (delta < 0) {
+            inLM_[m] = delta;
+            LM_.push(PQItem(delta, m));
+        }
+    };
+
+    for (int i = 0; i < n; ++i) {
+        int u1 = route[i];
+        int v1 = route[(i + 1) % n];
+        for (int j = i + 2; j < n; ++j) {
+            // skip adjacency
+            if (j == (i + 1) % n) continue;
+
+            int u2 = route[j];
+            int v2 = route[(j + 1) % n];
+
+            tryAdd(u1, v1, u2, v2);
+            tryAdd(v1, u1, u2, v2);
+            tryAdd(u1, v1, v2, u2);
+            tryAdd(v1, u1, v2, u2);
+        }
+    }
+}
+
+// Generate all inter-route moves across the whole route
+void LocalSearchSolver::generateAllInterMoves(const std::vector<int>& route, const std::vector<int>& unselected) {
+    int n = (int)route.size();
+    if (n == 0) return;
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < (int)unselected.size(); ++j) {
+            int delta = calculateDeltaInter(route, i, j, unselected);
+            if (delta < 0) {
+                StoredMove m = StoredMove::MakeInterNode(route[i], unselected[j]);
+                inLM_[m] = delta;
+                LM_.push(PQItem(delta, m));
+            }
+        }
+    }
+}
+
+// Generate edge moves that involve any of the affectedEdges (node ID pairs).
+void LocalSearchSolver::generateEdgeMovesForEdges(const std::vector<int>& route, const std::vector<std::pair<int,int>>& affectedEdges, const std::vector<bool>& /*isSelected*/) {
+    int n = (int)route.size();
+    if (n < 4) return;
+
+    // Build mapping node->pos for quick lookup
+    int maxNode = -1;
+    for (int node : route) if (node > maxNode) maxNode = node;
+    std::vector<int> posOf(maxNode + 1, -1);
+    for (int i = 0; i < n; ++i) posOf[route[i]] = i;
+
+    // local lambda to add all 4 variants
+    auto tryAdd = [&](int a1, int b1, int a2, int b2) {
+        StoredMove m = StoredMove::MakeEdgeExchange(a1, b1, a2, b2);
+        int oldCost = problem.GetDistance(a1, b1) + problem.GetDistance(a2, b2);
+        int newCost = problem.GetDistance(a1, a2) + problem.GetDistance(b1, b2);
+        int delta = newCost - oldCost;
+        if (delta < 0) {
+            inLM_[m] = delta;
+            LM_.push(PQItem(delta, m));
+        }
+    };
+
+    for (const auto& e : affectedEdges) {
+        int u1 = e.first;
+        int v1 = e.second;
+        // Ensure both nodes are selected and present in this route
+        if (u1 < 0 || v1 < 0) continue;
+        if (u1 >= (int)posOf.size() || v1 >= (int)posOf.size()) continue;
+        int posU1 = posOf[u1];
+        int posV1 = posOf[v1];
+        if (posU1 == -1 || posV1 == -1) continue;
+
+        // Pair this edge with all other edges in the route
+        for (int i = 0; i < n; ++i) {
+            int u2 = route[i];
+            int v2 = route[(i + 1) % n];
+
+            // Skip overlapping/adjacent edges
+            if (u2 == u1 || u2 == v1 || v2 == u1 || v2 == v1) continue;
+
+            // compute indices for delta function
+            int idx1 = posU1;
+            int idx2 = i;
+            if (idx1 == idx2) continue;
+            if (idx1 > idx2) std::swap(idx1, idx2);
+            // skip adjacency
+            if (idx2 == idx1 + 1 || (idx1 == 0 && idx2 == n - 1)) continue;
+
+            tryAdd(u1, v1, u2, v2);
+            tryAdd(v1, u1, u2, v2);
+            tryAdd(u1, v1, v2, u2);
+            tryAdd(v1, u1, v2, u2);
+        }
+    }
+}
+
+// Generate inter-route moves
+void LocalSearchSolver::generateInterMovesForPositions(const std::vector<int>& route, const std::vector<int>& positions, const std::vector<int>& unselected, const std::vector<bool>& /*isSelected*/) {
+    int n = (int)route.size();
+    if (n == 0) return;
+
+    for (int pos : positions) {
+        if (pos < 0 || pos >= n) continue;
+        for (int j = 0; j < (int)unselected.size(); ++j) {
+            int delta = calculateDeltaInter(route, pos, j, unselected);
+            if (delta < 0) {
+                StoredMove m = StoredMove::MakeInterNode(route[pos], unselected[j]);
+                inLM_[m] = delta;
+                LM_.push(PQItem(delta, m));
+            }
+        }
+    }
+}
+
+// Generate inter-route moves for a single newly-unselected node (nodeOut)
+void LocalSearchSolver::generateInterMovesForUnselectedNode(const std::vector<int>& route, int nodeOut, const std::vector<int>& unselected, const std::vector<bool>& /*isSelected*/) {
+    int n = (int)route.size();
+    if (n == 0) return;
+
+    // find index of nodeOut in unselected
+    int unIdx = -1;
+    for (int j = 0; j < (int)unselected.size(); ++j) {
+        if (unselected[j] == nodeOut) { unIdx = j; break; }
+    }
+    if (unIdx == -1) return;
+
+    for (int pos = 0; pos < n; ++pos) {
+        int delta = calculateDeltaInter(route, pos, unIdx, unselected);
+        if (delta < 0) {
+            StoredMove m = StoredMove::MakeInterNode(route[pos], nodeOut);
+            inLM_[m] = delta;
+            LM_.push(PQItem(delta, m));
+        }
+    }
+}
+
+// ---------------- findBestMove ----------------
+// This function pops from LM_ until it finds a move that is still applicable and improving.
 MoveDelta LocalSearchSolver::findBestMove(const std::vector<int>& solution, const std::vector<int>& unselected) {
-    // ---- Choose steepest descent move ----
     MoveDelta best{-1, -1, INT_MAX, MoveType::InterNode};
 
-    std::unordered_map<int, int> nextMoves;
-    nextMoves.reserve(solution.size());
-    nextMoves[solution.back()] = solution.front();
-    for (int i = 0; i < solution.size() - 1; i++) {
-        nextMoves[solution[i]] = solution[i + 1];
-    }
+    int n = (int)solution.size();
+    if (n == 0) return best;
 
-    for (auto &m : moveMemory_) {
-        // Check if the intra-edge swap move is applicable
-        if (m.first.type == MoveType::IntraEdge) {
-            if (m.first.i1next != nextMoves[m.first.i1] || m.first.i2next != nextMoves[m.first.i2])
+    // Build posOf table for nodes
+    int maxNode = -1;
+    for (int v : solution) if (v > maxNode) maxNode = v;
+    for (int v : unselected) if (v > maxNode) maxNode = v;
+    std::vector<int> posOf(maxNode + 1, -1);
+    for (int i = 0; i < n; ++i) posOf[solution[i]] = i;
+
+    // Build map for unselected node -> index
+    std::unordered_map<int,int> unselectedIndex;
+    for (int j = 0; j < (int)unselected.size(); ++j) unselectedIndex[unselected[j]] = j;
+
+    std::vector<PQItem> tempMoves; // store moves that are reversed in orientation for later requeue
+
+    while (!LM_.empty()) {
+        PQItem top = LM_.top();
+        LM_.pop();
+        StoredMove m = top.move;
+
+        // Validate popped PQ item against authoritative map inLM_
+        auto it = inLM_.find(m);
+        if (it == inLM_.end()) {
+            // Stale: move no longer in map -> skip
+            continue;
+        }
+        if (it->second != top.delta) {
+            // Stale pq item (delta changed) -> skip
+            continue;
+        }
+
+        inLM_.erase(it);
+
+        if (m.type == MoveType::IntraEdge) {
+            // check existence & direction for both edges
+            if (m.u1 < 0 || m.v1 < 0 || m.u2 < 0 || m.v2 < 0) continue;
+            if (m.u1 >= (int)posOf.size() || m.v1 >= (int)posOf.size() || m.u2 >= (int)posOf.size() || m.v2 >= (int)posOf.size()) {
                 continue;
-        }
+            }
 
-        if (m.second < best.delta) {
-            best.i1 = m.first.i1;
-            best.i2 = m.first.i2;
-            best.delta = m.second;
-            best.type = m.first.type;
+            int pos_u1 = posOf[m.u1];
+            int pos_v1 = posOf[m.v1];
+            int pos_u2 = posOf[m.u2];
+            int pos_v2 = posOf[m.v2];
+
+            if (pos_u1 == -1 || pos_v1 == -1 || pos_u2 == -1 || pos_v2 == -1) continue;
+
+            // check direction: 0=absent, 1=forward, 2=reversed
+            auto checkDir = [&](int u, int v) -> int {
+                int pu = posOf[u], pv = posOf[v];
+                if (pu == -1 || pv == -1) return 0;
+                if (nextIdxInline(pu, n) == pv) return 1;
+                if (nextIdxInline(pv, n) == pu) return 2;
+                return 0;
+            };
+
+            int dir1 = checkDir(m.u1, m.v1);
+            int dir2 = checkDir(m.u2, m.v2);
+
+            if (dir1 == 0 || dir2 == 0) {
+                // edge missing -> discard
+                continue;
+            }
+            if (dir1 == 2 || dir2 == 2) {
+                // reversed orientation present -> postpone (requeue later)
+                tempMoves.push_back(top);
+                continue;
+            }
+
+            int idx1 = posOf[m.u1];
+            int idx2 = posOf[m.u2];
+            if (idx1 == -1 || idx2 == -1) continue;
+            if (idx1 > idx2) std::swap(idx1, idx2);
+            // adjacency check
+            if (idx2 == idx1 + 1 || (idx1 == 0 && idx2 == n - 1)) {
+                continue;
+            }
+
+            int delta = calculateDeltaIntraTwoEdge(solution, idx1, idx2);
+            if (delta == INT_MAX) continue;
+            if (delta >= 0) continue;
+
+            best.i1 = idx1;
+            best.i2 = idx2;
+            best.delta = delta;
+            best.type = MoveType::IntraEdge;
+
+            // requeue tempMoves
+            for (auto &tm : tempMoves) {
+                inLM_[tm.move] = tm.delta;
+                LM_.push(tm);
+            }
+            return best;
+        }
+        else { // InterNode
+            // verify nodeIn still selected and nodeOut still unselected
+            if (m.nodeIn < 0 || m.nodeOut < 0) continue;
+            if (m.nodeIn >= (int)posOf.size()) continue;
+
+            int pos = posOf[m.nodeIn];
+            if (pos == -1) continue;
+
+            if (!unselectedIndex.count(m.nodeOut)) {
+                continue;
+            }
+            int unIdx = unselectedIndex[m.nodeOut];
+
+            int delta = calculateDeltaInter(solution, pos, unIdx, unselected);
+            if (delta >= 0) continue;
+
+            best.i1 = pos;
+            best.i2 = unIdx;
+            best.delta = delta;
+            best.type = MoveType::InterNode;
+
+            // requeue tempMoves
+            for (auto &tm : tempMoves) {
+                inLM_[tm.move] = tm.delta;
+                LM_.push(tm);
+            }
+            return best;
         }
     }
 
-    if (best.delta < 0) {
-        auto it1 = std::find(solution.begin(), solution.end(), best.i1);
-        assert(it1 != solution.end());
-        best.i1 = std::distance(solution.begin(), it1);
-
-        if (best.type == MoveType::InterNode) {
-            auto it2 = std::find(unselected.begin(), unselected.end(), best.i2);    
-            assert(it2 != unselected.end());
-            best.i2 = std::distance(unselected.begin(), it2);
-        }
-        else {
-            auto it2 = std::find(solution.begin(), solution.end(), best.i2);    
-            assert(it2 != solution.end());
-            best.i2 = std::distance(solution.begin(), it2);
-        }
+    for (auto &tm : tempMoves) {
+        inLM_[tm.move] = tm.delta;
+        LM_.push(tm);
     }
-
     return best;
 }
 
 // ---------------- STARTING SOLUTION ----------------
-
-bool adjacent(int a, int b, int n) {
-    return ( (a+1)%n == b ) || ( (b+1)%n == a );
-}
 
 std::vector<int> LocalSearchSolver::initializeSolution() {
     std::vector<int> sol = problem.GiveIndices();
@@ -143,38 +392,55 @@ std::vector<int> LocalSearchSolver::solve() {
     for (int idx : solution)
         unselected.erase(std::remove(unselected.begin(), unselected.end(), idx), unselected.end());
 
-    for (int i = 0; i < (int)solution.size(); i++) {
-        for (int j = 0; j < (int)solution.size(); j++) {
-            if (i == j) continue;
-            int delta = calculateDeltaIntraTwoEdge(solution, i, j);
-            int a = solution[i];
-            int b = solution[(i+1)%solution.size()];
-            int c = solution[j];
-            int d = solution[(j+1)%solution.size()];
+    int nTotal = problem.getNumCities();
+    int n = (int)solution.size();
 
-            moveMemory_[StoredMove{MoveType::IntraEdge, a, c, b, d}] = delta;
-            // moveMemory_.push_back(StoredMove{MoveType::IntraEdge, a, c, delta, b, d});
-        }
-
-        for (int j = 0; j < (int)unselected.size(); j++) {
-            int delta = calculateDeltaInter(solution, i, j, unselected);
-            int oldNode = solution[i];
-            int newNode = unselected[j];
-
-            moveMemory_[StoredMove{MoveType::InterNode, oldNode, newNode, -1, -1}] = delta;
-            // moveMemory_.push_back(StoredMove{MoveType::InterNode, oldNode, newNode, delta});
-        }
+    std::vector<bool> isSelected(nTotal, false);
+    for (int node : solution) {
+        if (node >= 0 && node < nTotal) isSelected[node] = true;
     }
-    
+
+    // Build posOf map (node id -> index in solution)
+    std::vector<int> posOf(nTotal, -1);
+    for (int i = 0; i < (int)solution.size(); ++i) posOf[solution[i]] = i;
+
+    // Clear LM_ and inLM_ in case
+    while (!LM_.empty()) LM_.pop();
+    inLM_.clear();
+
+    // Pre-generate all moves
+    std::vector<std::vector<int>> dummyDist;
+    generateAllEdgeMoves(solution, dummyDist, isSelected);
+    generateAllInterMoves(solution, unselected);
+
     while (true) {
         moveNum++;
 
         MoveDelta move = findBestMove(solution, unselected);
-        int i1prev = solution[move.i1 - 1 < 0 ? solution.size() - 1 : move.i1 - 1];
-        int i1next = solution[(move.i1 + 1) % solution.size()];
-        int i1 = solution[move.i1];
+        if (move.delta >= 0) break;
+
+        // Prepare pre-move endpoints for correct new-edge identification
+        int apply_i1 = move.i1;
+        int apply_i2 = move.i2;
+        int i1prev = solution[apply_i1 - 1 < 0 ? solution.size() - 1 : apply_i1 - 1];
+        int i1next = solution[(apply_i1 + 1) % solution.size()];
+        int i1 = solution[apply_i1];
         int i2;
-        int i2prev, i2next;
+        int i2prev = -1, i2next = -1;
+
+        // For IntraEdge
+        int u1 = -1, v1 = -1, u2 = -1, v2 = -1;
+        if (move.type == MoveType::IntraEdge) {
+            // positions in solution
+            int posA = move.i1;
+            int posB = move.i2;
+            int size = (int)solution.size();
+            u1 = solution[posA];
+            v1 = solution[(posA + 1) % size];
+            u2 = solution[posB];
+            v2 = solution[(posB + 1) % size];
+        }
+
         if (move.type == MoveType::InterNode) {
             i2 = unselected[move.i2];
         } else {
@@ -183,142 +449,64 @@ std::vector<int> LocalSearchSolver::solve() {
             i2next = solution[(move.i2 + 1) % solution.size()];
         }
 
-        if (move.delta >= 0) break;
-
+        // Apply the move
         switch (move.type) {
             case MoveType::InterNode:
                 std::swap(solution[move.i1], unselected[move.i2]);
+
+                // Update isSelected and posOf
+                isSelected[i1] = false;
+                isSelected[i2] = true;
+
+                // update posOf mapping
+                posOf[i2] = move.i1;
+                posOf[i1] = -1;
                 break;
+
             case MoveType::IntraEdge:
                 if (move.i1 > move.i2) std::swap(move.i1, move.i2);
-                    std::reverse(solution.begin() +move.i1 +1, solution.begin()+move.i2+ 1);
-                
+                std::reverse(solution.begin() + move.i1 + 1, solution.begin() + move.i2 + 1);
+
+                // rebuild posOf
+                for (int idx = 0; idx < (int)solution.size(); ++idx) posOf[solution[idx]] = idx;
                 break;
         }
 
-        // ---- After finding the best move, modify all the changed edges deltas in the memory ----
-        std::unordered_map<int, int> solutionIndexMap;
-        solutionIndexMap.reserve(solution.size());
-        for (int idx = 0; idx < (int)solution.size(); idx++)
-            solutionIndexMap[solution[idx]] = idx;
-        
-        std::unordered_map<int, int> unselectedIndexMap;
-        unselectedIndexMap.reserve(unselected.size());
-        for (int idx = 0; idx < (int)unselected.size(); idx++)
-            unselectedIndexMap[unselected[idx]] = idx;
-
-        std::unordered_map<StoredMove, int, StoredMoveHash> newMemory;
-        newMemory.reserve(moveMemory_.size());
-        
+        // After applying the move, generate new moves only for affected edges/positions
         if (move.type == MoveType::InterNode) {
-            for (auto &m : moveMemory_) {
-                StoredMove updatedMove = m.first;
-             
-                if (m.first.i1 == i1 || m.first.i2 == i2) {
-                    if (updatedMove.i1 == i1)
-                        updatedMove.i1 = i2;
-                    
-                    if (updatedMove.i2 == i2)
-                        updatedMove.i2 = i1;
-                    
-                    if (m.first.type == MoveType::InterNode) {
-                        newMemory[updatedMove] = calculateDeltaInter(solution, solutionIndexMap[updatedMove.i1], unselectedIndexMap[updatedMove.i2], unselected);
-                        continue;
-                        // updatedMove.delta = calculateDeltaInter(solution, std::distance(solution.begin(), std::find(solution.begin(), solution.end(), updatedMove.i1)), std::distance(unselected.begin(), std::find(unselected.begin(), unselected.end(), updatedMove.i2)), unselected);
-                    } else {
-                        // newMemory[updatedMove] = calculateDeltaIntraTwoEdge(solution, solutionIndexMap[updatedMove.i1], solutionIndexMap[updatedMove.i2]);
-                        continue;
-                        // updatedMove.delta = calculateDeltaIntraTwoEdge(solution, std::distance(solution.begin(), std::find(solution.begin(), solution.end(), updatedMove.i1)), std::distance(solution.begin(), std::find(solution.begin(), solution.end(), updatedMove.i2)));
-                    }
-                }
-                else {
-                    if (m.first.type == MoveType::InterNode) {
-                        if (m.first.i1 == i1prev || m.first.i1 == i1next) {
-                            newMemory[updatedMove] = m.second;
-                            newMemory[updatedMove] = calculateDeltaInter(solution, solutionIndexMap[updatedMove.i1], unselectedIndexMap[updatedMove.i2], unselected);
-                            continue;
-                            // updatedMove.delta = calculateDeltaInter(solution, std::distance(solution.begin(), std::find(solution.begin(), solution.end(), updatedMove.i1)), std::distance(unselected.begin(), std::find(unselected.begin(), unselected.end(), updatedMove.i2)), unselected);
-                        }
-                    }
-                    else {
-                        if (m.first.i1 == i1next || m.first.i2 == i1next) {
-                            // newMemory[updatedMove] = calculateDeltaIntraTwoEdge(solution, solutionIndexMap[updatedMove.i1], solutionIndexMap[updatedMove.i2]);
-                            continue;
-                            // updatedMove.delta = calculateDeltaIntraTwoEdge(solution, std::distance(solution.begin(), std::find(solution.begin(), solution.end(), updatedMove.i1)), std::distance(solution.begin(), std::find(solution.begin(), solution.end(), updatedMove.i2)));
-                        }
-                    }
-                }
+            int pos = move.i1;
+            int prevNode = (pos == 0) ? solution.back() : solution[pos - 1];
+            int nextNode = (pos == (int)solution.size() - 1) ? solution.front() : solution[pos + 1];
+            int newNode = solution[pos];
 
-                newMemory[updatedMove] = m.second;
-            }
+            std::vector<std::pair<int,int>> newEdges;
+            newEdges.push_back({prevNode, newNode});
+            newEdges.push_back({newNode, nextNode});
+
+            std::vector<int> affectedPositions = { posOf[prevNode], posOf[newNode], posOf[nextNode] };
+
+            generateEdgeMovesForEdges(solution, newEdges, isSelected);
+            generateInterMovesForPositions(solution, affectedPositions, unselected, isSelected);
+
+            // Also generate inter-route moves that use the node that was removed from the route (now unselected)
+            // i1 is the node removed
+            generateInterMovesForUnselectedNode(solution, i1, unselected, isSelected);
         } else {
-            for (auto &m : moveMemory_) {
-                // Recreate the chosen move
-                StoredMove updatedMove = m.first;
-
-                if (m.first.type == MoveType::InterNode) {
-                    if (m.first.i1 == i1 || m.first.i1 == i1next || m.first.i1 == i2 || m.first.i1 == i2next) {
-                        newMemory[updatedMove] = calculateDeltaInter(solution, solutionIndexMap[updatedMove.i1], unselectedIndexMap[updatedMove.i2], unselected);
-                    }
-                    else {
-                        newMemory[updatedMove] = m.second;
-                    }
-                }
-                else {
-                    if (!(solutionIndexMap.count(updatedMove.i1) && solutionIndexMap.count(updatedMove.i2) && solutionIndexMap.count(updatedMove.i1next) && solutionIndexMap.count(updatedMove.i2next)))
-                        continue;
-
-                    if (updatedMove.i1 == i1 && updatedMove.i1next == i1next && updatedMove.i2 == i2 && updatedMove.i2next == i2next) {
-                        continue;
-                    }
-
-                    if (solutionIndexMap[updatedMove.i1] > solutionIndexMap[updatedMove.i1next] && solutionIndexMap[updatedMove.i2] > solutionIndexMap[updatedMove.i2next]) {
-                        std::swap(updatedMove.i1, updatedMove.i1next);
-                        std::swap(updatedMove.i2, updatedMove.i2next);
-                    }
-
-                    if (solutionIndexMap[updatedMove.i1] > solutionIndexMap[updatedMove.i2]) {
-                        std::swap(updatedMove.i1, updatedMove.i2);
-                        std::swap(updatedMove.i1next, updatedMove.i2next);
-                    }
-
-                    if (!adjacent(solutionIndexMap[updatedMove.i1], solutionIndexMap[updatedMove.i1next], solution.size()) || !adjacent(solutionIndexMap[updatedMove.i2], solutionIndexMap[updatedMove.i2next], solution.size())) {
-                        continue;
-                    }
-
-                    // newMemory[updatedMove] = calculateDeltaIntraTwoEdge(solution, solutionIndexMap[updatedMove.i1], solutionIndexMap[updatedMove.i2]);
-                    newMemory[updatedMove] = m.second;
-                }
+            std::vector<std::pair<int,int>> newEdges;
+            if (u1 != -1 && v1 != -1 && u2 != -1 && v2 != -1) {
+                newEdges.push_back({u1, u2});
+                newEdges.push_back({v1, v2});
             }
 
-            for (int i = 0; i < solution.size(); i++) {
-                for (int j = i + 1; j < solution.size(); j++) {
-                    StoredMove moveToCheck = StoredMove{MoveType::IntraEdge, solution[i], solution[j], solution[(i + 1) % solution.size()], solution[(j + 1) % solution.size()]};
-                    if (!newMemory.count(moveToCheck)) {
-                        int delta = calculateDeltaIntraTwoEdge(solution, i, j);
-                        if (delta < INT_MAX)
-                            newMemory[moveToCheck] = delta;
-                    }
-                }
-            }
+            std::vector<int> affectedPositions;
+            if (u1 != -1) affectedPositions.push_back(posOf[u1]);
+            if (u2 != -1) affectedPositions.push_back(posOf[u2]);
+            if (v1 != -1) affectedPositions.push_back(posOf[v1]);
+            if (v2 != -1) affectedPositions.push_back(posOf[v2]);
+
+            generateEdgeMovesForEdges(solution, newEdges, isSelected);
+            generateInterMovesForPositions(solution, affectedPositions, unselected, isSelected);
         }
-
-        std::unordered_map<StoredMove, int, StoredMoveHash> checkMemory = newMemory;
-
-        for (auto &m : checkMemory) {
-            if (m.first.type == MoveType::InterNode) {
-                if (!solutionIndexMap.count(m.first.i1) || !unselectedIndexMap.count(m.first.i2)) {
-                    newMemory.erase(m.first);
-                }
-            }
-            else {
-                if (!solutionIndexMap.count(m.first.i1) || !solutionIndexMap.count(m.first.i2)) {
-                    newMemory.erase(m.first);
-                }
-            }
-        }
-
-        moveMemory_.swap(newMemory);
 
         bool deltaCorrect = (problem.FullDistanceAndCost(solution) - lastCost == move.delta);
 
@@ -329,6 +517,7 @@ std::vector<int> LocalSearchSolver::solve() {
         lastCost = problem.FullDistanceAndCost(solution);
         lastMoveType = move.type == MoveType::IntraEdge ? "Intra Edge" : "Inter Node";
     }
+
     AssertHamiltonian(solution,problem.GetNumberCitiesInCycle());
     return solution;
 }
