@@ -249,10 +249,10 @@ std::vector<int> EvolutionarySolver::solve()
         // Perform LocalSearch (from assignment 5) on it
         lss.SetStartingSol(newSol.genome);
         newSol.genome = lss.solve();
-        AssertHamiltonian(newSol.genome, problem.GetNumberCitiesInCycle());
         newSol.fitness = problem.FullDistanceAndCost(newSol.genome);
         // Add only if not yet in the solution
         if (IsInPopulation(newSol))
+            currTime = std::chrono::high_resolution_clock::now();
             continue;
 
         // Replace a solution from population

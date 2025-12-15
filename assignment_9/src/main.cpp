@@ -21,12 +21,11 @@ int main() {
         std::cout << "\n=== Testing " << prob.name << " ===\n";
 
         int numCities = prob.getNumCities();
-        std::vector<int> bestSolution;
 
         // --- Iterate over all starting cities ---
         auto start = std::chrono::high_resolution_clock::now();
 
-        EvolutionarySolver solver(prob, 30, true);
+        EvolutionarySolver solver(prob, 30, false);
         std::vector<int> solution = solver.solve();
         int64_t cost = prob.FullDistanceAndCost(solution);
 
@@ -35,7 +34,7 @@ int main() {
 
         std::string filename = resultPath + "LS_best_" + prob.name + ".csv";
 
-        if (!solver.writePathCsv(bestSolution, filename)) std::cerr << "Failed to write " << filename << std::endl;
+        if (!solver.writePathCsv(solution, filename)) std::cerr << "Failed to write " << filename << std::endl;
 
         // --- Print results ---
         std::cout << "  Best:    " << cost << "\n";
