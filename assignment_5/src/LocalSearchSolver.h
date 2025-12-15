@@ -121,10 +121,11 @@ struct MoveDelta {
 
 class LocalSearchSolver : public Solver {
 public:
-    LocalSearchSolver(const ProblemInstance& prob,
-                      int randomSeed = 42);
+    LocalSearchSolver(const ProblemInstance& prob, int randomSeed = 42);
 
     std::vector<int> solve();
+
+    void SetStartingSol(std::vector<int>& ss);
 
 private:
     // The LM (list of moves) as a priority queue with their deltas
@@ -133,6 +134,8 @@ private:
     std::unordered_map<StoredMove, int, StoredMoveHash, StoredMoveEqual> inLM_;
 
     std::mt19937 rng_;
+
+    std::vector<int> startingSol = {};
 
     // Helper functions
     std::vector<int> slicing(const std::vector<int>& arr, int X);

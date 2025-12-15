@@ -378,10 +378,16 @@ std::vector<int> LocalSearchSolver::initializeSolution() {
     return result;
 }
 
+void LocalSearchSolver::SetStartingSol(std::vector<int>& ss) {
+    startingSol = ss;
+}
+
 // ---------------- MAIN SOLVE LOOP ----------------
 
 std::vector<int> LocalSearchSolver::solve() {
     std::vector<int> solution = initializeSolution();
+    if (startingSol.size() == problem.GetNumberCitiesInCycle())
+        solution = startingSol;
     std::vector<int> unselected = problem.GiveIndices();
 
     int moveNum = 0;
