@@ -1,0 +1,1 @@
+g++ -std=c++17 -g .\src\*.cpp .\assignment_5\src\LocalSearchSolver.cpp .\assignment_9\src\*.cpp -o assignment_9.exe
