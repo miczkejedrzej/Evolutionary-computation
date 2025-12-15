@@ -251,9 +251,10 @@ std::vector<int> EvolutionarySolver::solve()
         newSol.genome = lss.solve();
         newSol.fitness = problem.FullDistanceAndCost(newSol.genome);
         // Add only if not yet in the solution
-        if (IsInPopulation(newSol))
+        if (IsInPopulation(newSol)) {
             currTime = std::chrono::high_resolution_clock::now();
             continue;
+        }
 
         // Replace a solution from population
         if (!randReplace) {
