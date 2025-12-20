@@ -18,28 +18,75 @@ int main() {
 
     // --- Loop through configurations ---
     for (auto& prob : probs) {
-        std::cout << "\n=== Testing " << prob.name << " ===\n";
+        for (RecombinationType rt : {RecombinationType::CommonEdges, RecombinationType::Repair}) {
+            for (bool pLS : {true, false}) {
+                if (rt == RecombinationType::CommonEdges && !pLS)
+                    continue;
+                
+                std::string rtS = rt == RecombinationType::CommonEdges ? "CommonEdges" : "Repair";
+                std::string pLSS = pLS ? "LS" : "NoLS";
+                
+                std::cout << "\n=== Testing " << prob.name << " " << rtS << " " << pLSS << " ===\n";
 
-        int numCities = prob.getNumCities();
+                // Tracking metrics
+                int64_t bestCost = INT64_MAX;
+                int64_t worstCost = INT64_MIN;
+                int64_t sumCost = 0;
 
-        // --- Iterate over all starting cities ---
-        auto start = std::chrono::high_resolution_clock::now();
+                // Timing variables
+                int bestTime = INT_MAX;
+                int worstTime = INT_MIN;
+                int64_t sumTime = 0;
 
-        EvolutionarySolver solver(prob, 30, false);
-        std::vector<int> solution = solver.solve();
-        int64_t cost = prob.FullDistanceAndCost(solution);
+                int numCities = prob.getNumCities();
+                std::vector<int> bestSolution;
 
-        auto end = std::chrono::high_resolution_clock::now();
-        int duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                const int repNum = 50;
+                for (int startIdx = 0; startIdx < repNum; ++startIdx) {
+                    auto start = std::chrono::high_resolution_clock::now();
 
-        std::string filename = resultPath + "LS_best_" + prob.name + ".csv";
+                    EvolutionarySolver solver(prob, RecombinationType::CommonEdges, startIdx);
+                    std::vector<int> solution = solver.solve();
+                    int64_t cost = prob.FullDistanceAndCost(solution);
+                    sumCost += cost;
 
-        if (!solver.writePathCsv(solution, filename)) std::cerr << "Failed to write " << filename << std::endl;
+                    auto end = std::chrono::high_resolution_clock::now();
+                    int duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                    sumTime += duration;
 
-        // --- Print results ---
-        std::cout << "  Best:    " << cost << "\n";
+                    if (duration < bestTime)
+                        bestTime = duration;
+                    
+                    if (duration > worstTime)
+                        worstTime = duration;
 
-        std::cout << "\n" << "  TIME (ms): " << duration << "\n";
+                    if (cost < bestCost) {
+                        bestCost = cost;
+                        bestSolution = solution;
+
+                        std::string filename = resultPath + "LS_best_" + rtS + "_" + pLSS + "_" + prob.name + ".csv";
+
+                        if (!solver.writePathCsv(bestSolution, filename))
+                            std::cerr << "Failed to write " << filename << std::endl;
+                    }
+
+                    if (cost > worstCost)
+                        worstCost = cost;
+                }
+
+                double avgCost = static_cast<double>(sumCost) / repNum;
+
+                // --- Print results ---
+                std::cout << "  Best:    " << bestCost << "\n";
+                std::cout << "  Worst:   " << worstCost << "\n";
+                std::cout << "  Average: " << avgCost << "\n";
+
+                std::cout << "\n" << "  TIME (ms)" << "\n"
+                            << "  Best: " << bestTime << "\n"
+                            << "  Worst: " << worstTime << "\n"
+                            << "  Average: " << static_cast<double>(sumTime) / repNum << "\n";
+            }
+        }
     }
 
     return 0;

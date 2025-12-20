@@ -11,16 +11,15 @@
 #include <chrono>
 #include <unordered_map>
 #include "../../src/ProblemInstance.h"
-EvolutionarySolver::EvolutionarySolver(const ProblemInstance &prob, int popSize_, bool randReplace_, int randomSeed)
+EvolutionarySolver::EvolutionarySolver(const ProblemInstance &prob, RecombinationType recombinationType, int randomSeed, bool performLS, int popSize_, bool randReplace_)
     : Solver(prob),
+    recombinationType(recombinationType),
+    performLS(performLS),
     rng_(randomSeed),
     popSize(std::max(popSize_, 21)),
     randReplace(randReplace_ && popSize_ > 21),
     lss(prob, rng_())
-{
-    if (popSize < 21) popSize = 21;
-    if (popSize == 21) randReplace = false;
-}
+{}
 
 // ---------------- Helper Functions ----------------
 
@@ -68,7 +67,7 @@ void EvolutionarySolver::SortPopulation() {
     });
 }
 
-EvolutionarySolver::Solution EvolutionarySolver::Cross(const Solution& p1, const Solution& p2)
+EvolutionarySolver::Solution EvolutionarySolver::CrossCommonEdges(const Solution& p1, const Solution& p2)
 {
     using Path = std::vector<int>;
 
@@ -221,10 +220,31 @@ EvolutionarySolver::Solution EvolutionarySolver::Cross(const Solution& p1, const
     return offspring;
 }
 
+EvolutionarySolver::Solution EvolutionarySolver::CrossRepair(const Solution& p1, const Solution& p2) {
+    std::vector<int> v1 = p1.genome;
+    std::vector<int> v2 = p2.genome;
+    std::unordered_set<int> allowed(v2.begin(), v2.end());
+
+    v1.erase(
+        std::remove_if(v1.begin(), v1.end(),
+            [&](int x) { return allowed.find(x) == allowed.end(); }),
+        v1.end()
+    );
+
+    // Repair
+    greedy_solver->complete_solution(v1);
+
+    Solution offspring;
+    offspring.genome = v1;
+    return offspring;
+}
+
 // ---------------- MAIN SOLVE LOOP ----------------
 
 std::vector<int> EvolutionarySolver::solve()
 {
+    greedy_solver = std::make_unique<GreedySolver>(problem, rng_(), GreedyMode::NearestNeighbour, Heuristic::HybridRegretObjective, 0.5);
+
     // Initialize the set of solutions
     while (population.size() < popSize) {
         std::vector<int> newSol = initializeSolution();
@@ -238,17 +258,22 @@ std::vector<int> EvolutionarySolver::solve()
     // Repeat until 57000 ms pass
     auto start = std::chrono::high_resolution_clock::now();
     auto currTime = start;
-    while (std::chrono::duration_cast<std::chrono::seconds>(currTime - start).count() < 57) {
+    while (std::chrono::duration_cast<std::chrono::seconds>(currTime - start).count() < 1) {
         // Cross two random solutions in the population to create an offspring
         std::uniform_int_distribution<size_t> d1(0, popSize - 1);
         std::uniform_int_distribution<size_t> d2(0, popSize - 2);
         size_t i = d1(rng_);
         size_t j = d2(rng_);
         if (j >= i) ++j;
-        Solution newSol = Cross(population[i], population[j]);
-        // Perform LocalSearch (from assignment 5) on it
-        lss.SetStartingSol(newSol.genome);
-        newSol.genome = lss.solve();
+        Solution newSol = recombinationType == RecombinationType::CommonEdges ?
+            CrossCommonEdges(population[i], population[j]) : CrossRepair(population[i], population[j]);
+        
+        if (performLS) {
+            // Perform LocalSearch (from assignment 5) on it
+            lss.SetStartingSol(newSol.genome);
+            newSol.genome = lss.solve();
+        }
+
         newSol.fitness = problem.FullDistanceAndCost(newSol.genome);
         // Add only if not yet in the solution
         if (IsInPopulation(newSol)) {
