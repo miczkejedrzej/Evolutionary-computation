@@ -258,7 +258,7 @@ std::vector<int> EvolutionarySolver::solve()
     // Repeat until 57000 ms pass
     auto start = std::chrono::high_resolution_clock::now();
     auto currTime = start;
-    while (std::chrono::duration_cast<std::chrono::seconds>(currTime - start).count() < 1) {
+    while (std::chrono::duration_cast<std::chrono::seconds>(currTime - start).count() < 57) {
         // Cross two random solutions in the population to create an offspring
         std::uniform_int_distribution<size_t> d1(0, popSize - 1);
         std::uniform_int_distribution<size_t> d2(0, popSize - 2);
