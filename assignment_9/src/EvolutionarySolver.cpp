@@ -232,7 +232,7 @@ EvolutionarySolver::Solution EvolutionarySolver::CrossRepair(const Solution& p1,
     );
 
     // Repair
-    greedy_solver->complete_solution(v1);
+    v1 = greedy_solver->complete_solution(v1);
 
     Solution offspring;
     offspring.genome = v1;

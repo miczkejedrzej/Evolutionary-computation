@@ -41,11 +41,11 @@ int main() {
                 int numCities = prob.getNumCities();
                 std::vector<int> bestSolution;
 
-                const int repNum = 50;
+                const int repNum = 10;
                 for (int startIdx = 0; startIdx < repNum; ++startIdx) {
                     auto start = std::chrono::high_resolution_clock::now();
 
-                    EvolutionarySolver solver(prob, RecombinationType::CommonEdges, startIdx);
+                    EvolutionarySolver solver(prob, rt, startIdx, pLS);
                     std::vector<int> solution = solver.solve();
                     int64_t cost = prob.FullDistanceAndCost(solution);
                     sumCost += cost;
