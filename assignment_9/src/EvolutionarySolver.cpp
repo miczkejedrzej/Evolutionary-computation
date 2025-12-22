@@ -69,7 +69,15 @@ void EvolutionarySolver::SortPopulation() {
 
 EvolutionarySolver::Solution EvolutionarySolver::CrossCommonEdges(const Solution& p1, const Solution& p2)
 {
+    double p_break = 0.15;
+
     using Path = std::vector<int>;
+
+    // if ((rng_() % 100) < 5) {
+    //     Solution s;
+    //     s.genome = initializeSolution();
+    //     return s;
+    // }
 
     // --- Build adjacency maps (undirected cycles, immutable) ---
     auto buildAdj = [](const std::vector<int>& c) {
@@ -104,6 +112,11 @@ EvolutionarySolver::Solution EvolutionarySolver::CrossCommonEdges(const Solution
         for (int n : {adj1.at(v).first, adj1.at(v).second}) {
             if (used.count(n)) continue;
             if (!hasEdge(adj2, v, n)) continue;
+
+            // ----- DIVERSITY INJECTION -----
+            if (std::uniform_real_distribution<>(0.0, 1.0)(rng_) < p_break)
+                continue;
+            // -------------------------------
 
             // ----- Extend backward -----
             Path backward;
@@ -268,6 +281,8 @@ std::vector<int> EvolutionarySolver::solve()
         Solution newSol = recombinationType == RecombinationType::CommonEdges ?
             CrossCommonEdges(population[i], population[j]) : CrossRepair(population[i], population[j]);
         
+        newSol.age = 0;
+        
         if (performLS) {
             // Perform LocalSearch (from assignment 5) on it
             lss.SetStartingSol(newSol.genome);
@@ -285,13 +300,24 @@ std::vector<int> EvolutionarySolver::solve()
         if (!randReplace) {
             population.push_back(newSol);
             SortPopulation();
-            population.pop_back();
+
+            // find replacement candidate (oldest among non-elites)
+            int replaceIdx = 20;
+            for (int i = 21; i < popSize; ++i) {
+                if (population[i].age > population[replaceIdx].age)
+                    replaceIdx = i;
+            }
+
+            population.erase(population.begin() + replaceIdx);
         }
         else {
             std::uniform_int_distribution<size_t> d(20, popSize - 1);
             population[d(rng_)] = newSol;
             SortPopulation();
         }
+
+        for (auto& s : population)
+            s.age++;
         
         currTime = std::chrono::high_resolution_clock::now();
     }

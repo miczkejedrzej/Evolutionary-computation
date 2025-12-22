@@ -23,6 +23,7 @@ private:
     struct Solution {
         std::vector<int> genome;
         int fitness;
+        int age = 0;
 
         bool operator==(const Solution& a) const {
             return fitness == a.fitness;

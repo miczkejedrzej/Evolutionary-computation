@@ -18,7 +18,8 @@ int main() {
 
     // --- Loop through configurations ---
     for (auto& prob : probs) {
-        for (RecombinationType rt : {RecombinationType::CommonEdges, RecombinationType::Repair}) {
+        // for (RecombinationType rt : {RecombinationType::CommonEdges, RecombinationType::Repair}) {
+        for (RecombinationType rt : {RecombinationType::CommonEdges}) {
             for (bool pLS : {true, false}) {
                 if (rt == RecombinationType::CommonEdges && !pLS)
                     continue;
@@ -45,7 +46,7 @@ int main() {
                 for (int startIdx = 0; startIdx < repNum; ++startIdx) {
                     auto start = std::chrono::high_resolution_clock::now();
 
-                    EvolutionarySolver solver(prob, rt, startIdx, pLS);
+                    EvolutionarySolver solver(prob, rt, startIdx, pLS, 40, true);
                     std::vector<int> solution = solver.solve();
                     int64_t cost = prob.FullDistanceAndCost(solution);
                     sumCost += cost;
